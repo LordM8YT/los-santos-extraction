@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en" class="hud-closed">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Extraction HUD</title>
+  <style>
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: rgba(0, 0, 0, 0) !important;
+      background-color: rgba(0, 0, 0, 0) !important;
+    }
+
+    html.hud-closed,
+    html.hud-closed body {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+      pointer-events: none !important;
+    }
+  </style>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="hud">
+    <section id="raidPanel" class="raid-panel hidden">
+      <div>
+        <p class="eyebrow">RAID TIMER</p>
+        <strong id="raidTimer">00:00</strong>
+      </div>
+      <div class="raid-stat">
+        <span>Bag</span>
+        <strong id="bagValue">$0</strong>
+      </div>
+      <div class="raid-stat">
+        <span>Weight</span>
+        <strong id="bagWeight">0 / 0</strong>
+      </div>
+    </section>
+
+    <section id="progressPanel" class="progress-panel hidden">
+      <div class="progress-head">
+        <span id="progressLabel">Working</span>
+        <strong id="progressPercent">0%</strong>
+      </div>
+      <div class="progress-track">
+        <div id="progressFill" class="progress-fill"></div>
+      </div>
+      <p>Backspace cancels</p>
+    </section>
+
+    <section id="hintPanel" class="hint-panel hidden"></section>
+    <section id="profilePanel" class="profile-panel hidden"></section>
+    <section id="toastStack" class="toast-stack"></section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

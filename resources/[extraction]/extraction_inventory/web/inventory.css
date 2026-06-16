@@ -1,0 +1,264 @@
+:root {
+  --bg: rgba(7, 9, 8, 0.96);
+  --panel: rgba(17, 20, 18, 0.94);
+  --panel-alt: rgba(238, 242, 232, 0.035);
+  --line: rgba(222, 232, 216, 0.14);
+  --text: #eef2e8;
+  --muted: #9ea897;
+  --accent: #d7b66f;
+  --accent-2: #86d28f;
+  --danger: #e87266;
+  --shadow: 0 22px 60px rgba(0, 0, 0, 0.42);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0) !important;
+  background-color: rgba(0, 0, 0, 0) !important;
+}
+
+html.nui-closed,
+html.nui-closed body {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  pointer-events: none !important;
+}
+
+body {
+  font-family: "Bahnschrift", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  color: var(--text);
+}
+
+.app {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: none;
+  width: min(760px, 92vw);
+  max-height: 76vh;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0) !important;
+  background-color: rgba(0, 0, 0, 0) !important;
+  pointer-events: none;
+}
+
+.app.is-open {
+  display: block;
+  pointer-events: auto;
+}
+
+.shell {
+  width: 100%;
+  max-height: 76vh;
+  overflow: hidden;
+  padding: 22px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.hero,
+.panel-head,
+.layout,
+.actions {
+  display: flex;
+}
+
+.hero,
+.panel-head {
+  align-items: center;
+  justify-content: space-between;
+}
+
+.eyebrow,
+.panel-kicker {
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+h1,
+h2 {
+  margin: 0;
+  font-weight: 600;
+}
+
+h1 {
+  font-size: 28px;
+  line-height: 1;
+}
+
+h2 {
+  font-size: 20px;
+}
+
+.layout {
+  gap: 12px;
+  height: min(390px, 48vh);
+  margin-top: 18px;
+}
+
+.panel {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  padding: 16px;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  min-height: 58px;
+  padding: 11px 12px;
+  background: var(--panel-alt);
+  border: 1px solid rgba(238, 242, 232, 0.075);
+  border-radius: 6px;
+}
+
+.item-main strong,
+.item-main span {
+  display: block;
+}
+
+.item-main strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.item-main span {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.item-value {
+  color: var(--accent);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.item-weapon {
+  border-color: rgba(215, 182, 111, 0.22);
+}
+
+.item-ammo {
+  border-color: rgba(134, 210, 143, 0.2);
+}
+
+.empty {
+  padding: 22px 10px;
+  color: var(--muted);
+  text-align: center;
+  border: 1px dashed rgba(238, 242, 232, 0.12);
+  border-radius: 6px;
+}
+
+button {
+  min-height: 36px;
+  padding: 9px 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 0;
+  border-radius: 6px;
+  transition: transform 120ms ease, opacity 120ms ease, background 120ms ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+  transform: none;
+}
+
+.ghost {
+  color: var(--text);
+  background: rgba(238, 242, 232, 0.08);
+  border: 1px solid rgba(238, 242, 232, 0.1);
+}
+
+.accent {
+  color: #11130f;
+  background: var(--accent);
+}
+
+.danger {
+  color: #ffd4cf;
+  background: rgba(232, 114, 102, 0.16);
+}
+
+.actions {
+  gap: 8px;
+}
+
+.meta-pill {
+  min-width: 86px;
+  padding: 8px 10px;
+  color: var(--accent-2);
+  font-weight: 700;
+  text-align: center;
+  background: rgba(134, 210, 143, 0.08);
+  border: 1px solid rgba(134, 210, 143, 0.26);
+  border-radius: 6px;
+}
+
+@media (max-width: 900px) {
+  .app {
+    width: min(92vw, 760px);
+  }
+
+  .shell {
+    padding: 18px;
+  }
+
+  .layout {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .panel {
+    min-height: 280px;
+  }
+
+  .item {
+    grid-template-columns: 1fr;
+  }
+
+  .hero {
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .actions {
+    flex-shrink: 0;
+  }
+}

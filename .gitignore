@@ -1,0 +1,27 @@
+# FiveM runtime/cache output
+/cache/
+/.replxx_history
+/server.cfg
+/server.cfg.bkp
+
+# Default recipe resources. Keep the repo focused on this extraction project.
+/resources/\[gamemodes\]/
+/resources/\[gameplay\]/
+/resources/\[local\]/
+/resources/\[managers\]/
+/resources/\[system\]/
+/resources/\[test\]/
+
+# Third-party dependencies should be installed from their release sources.
+# See README.md for pinned versions currently used locally.
+/resources/\[overextended\]/
+
+# Do not commit live player data.
+/resources/\[extraction\]/standalone_extraction/data/players.json
+
+# Common local/editor files
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+*.bak
