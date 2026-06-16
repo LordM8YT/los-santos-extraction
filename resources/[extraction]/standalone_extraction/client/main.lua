@@ -313,10 +313,25 @@ end
 
 local function moveToLobbySpawn()
     if not Config.Lobby.spawnOnJoin or raidState.active then
-        return
+        return false
     end
 
     teleportTo(Config.Lobby.spawn)
+    return true
+end
+
+local function openLobbyAfterFlyIn()
+    if not Config.Lobby.openUiOnJoin or raidState.active then
+        return
+    end
+
+    Wait(Config.Lobby.openUiDelay or 900)
+
+    if raidState.active then
+        return
+    end
+
+    openLobbyUi('deploy')
 end
 
 local function resurrectAt(coords)
@@ -643,7 +658,9 @@ AddEventHandler('playerSpawned', function()
 
     CreateThread(function()
         Wait(Config.Lobby.spawnDelay or 1500)
-        moveToLobbySpawn()
+        if moveToLobbySpawn() then
+            openLobbyAfterFlyIn()
+        end
     end)
 end)
 
@@ -672,7 +689,9 @@ CreateThread(function()
 
     if not hasHandledInitialSpawn and NetworkIsPlayerActive(PlayerId()) then
         hasHandledInitialSpawn = true
-        moveToLobbySpawn()
+        if moveToLobbySpawn() then
+            openLobbyAfterFlyIn()
+        end
     end
 end)
 

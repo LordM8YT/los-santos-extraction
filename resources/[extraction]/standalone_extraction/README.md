@@ -5,6 +5,7 @@ Standalone extraction prototype for FiveM. No ESX, QBCore, Qbox, `ox_target`, or
 ## What This Resource Does
 
 - Adds an extraction hub at LSIA.
+- Spawns players at the hub and opens the lobby UI on fly-in when `extraction_lobby` is running.
 - Lets players start private raids in their own routing buckets.
 - Reads loot spots from `extraction_world`.
 - Disables ambient NPCs, traffic, police spawns, garbage trucks, and random boats.

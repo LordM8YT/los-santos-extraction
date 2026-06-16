@@ -9,6 +9,7 @@ This resource is a presentation layer only. Raid start, stash, selling, and inve
 ## Features
 
 - Transparent NUI with no full-screen background.
+- Opens automatically after fly-in when `Config.Lobby.openUiOnJoin` is enabled.
 - Opens from the hub interaction points.
 - Shows player cash, level, XP, raids, best run, stash value, stash preview, and loadout preview.
 - Provides buttons for deploy, stash/loadout, selling secured loot, and refresh.
