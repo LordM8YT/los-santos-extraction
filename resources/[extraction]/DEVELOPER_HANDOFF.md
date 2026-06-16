@@ -14,6 +14,8 @@ This folder contains a standalone FiveM extraction prototype. The current goal i
   Standalone NUI for stash, loadout, raid bag, item dropping, and selling secured loot.
 - `extraction_hud`
   Custom extraction HUD, notifications, hints, progress display, raid timer, and vanilla HUD suppression.
+- `extraction_lobby`
+  Safehouse lobby NUI for deploy, stash/loadout access, selling, and profile overview.
 - `extraction_chat`
   Theme override for the default FiveM chat resource.
 

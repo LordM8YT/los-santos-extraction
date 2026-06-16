@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en" class="nui-hidden">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Extraction Lobby</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="app" class="app" aria-hidden="true">
+      <section class="terminal" aria-label="Extraction operations console">
+        <aside class="brand-panel">
+          <div class="brand-mark">LSX</div>
+          <p class="eyebrow">Safehouse Terminal</p>
+          <h1>Operations</h1>
+          <p class="brief">
+            Prepare a kit, deploy into the city, secure loot, and get back alive.
+          </p>
+
+          <div class="status-strip">
+            <span class="pulse"></span>
+            <span id="raidStatus">Standing by</span>
+          </div>
+        </aside>
+
+        <main class="content-panel">
+          <header class="topbar">
+            <div>
+              <p class="eyebrow">Contractor Profile</p>
+              <h2 id="profileTitle">Loading profile</h2>
+            </div>
+            <button id="closeButton" class="icon-button" type="button">Close</button>
+          </header>
+
+          <section id="stats" class="stats-grid"></section>
+
+          <section class="action-grid" aria-label="Lobby actions">
+            <button class="action-card primary" data-action="startRaid" type="button">
+              <span>Deploy</span>
+              <strong>Start Raid</strong>
+              <em>Enter a private Los Santos run.</em>
+            </button>
+            <button class="action-card" data-action="openInventory" type="button">
+              <span>Armory</span>
+              <strong>Stash / Loadout</strong>
+              <em>Review secured loot and raid kit.</em>
+            </button>
+            <button id="sellButton" class="action-card" data-action="sellLoot" type="button">
+              <span>Trader</span>
+              <strong>Sell Loot</strong>
+              <em id="sellHint">Requires secured sellable loot.</em>
+            </button>
+            <button class="action-card ghost" data-action="refresh" type="button">
+              <span>Sync</span>
+              <strong>Refresh</strong>
+              <em>Pull latest server profile.</em>
+            </button>
+          </section>
+
+          <section class="intel-grid">
+            <article class="panel">
+              <div class="panel-head">
+                <p class="eyebrow">Stash Preview</p>
+                <span id="stashMeta">0 items</span>
+              </div>
+              <div id="stashPreview" class="item-list"></div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-head">
+                <p class="eyebrow">Ready Kit</p>
+                <span id="loadoutMeta">Empty</span>
+              </div>
+              <div id="loadoutPreview" class="item-list"></div>
+            </article>
+          </section>
+        </main>
+      </section>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

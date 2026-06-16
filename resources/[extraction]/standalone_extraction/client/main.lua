@@ -143,6 +143,15 @@ local function drawHelpText(text)
     EndTextCommandDisplayHelp(0, false, false, -1)
 end
 
+local function openLobbyUi(defaultView)
+    if GetResourceState('extraction_lobby') ~= 'started' then
+        return false
+    end
+
+    TriggerEvent('extraction_lobby:client:open', defaultView or 'deploy')
+    return true
+end
+
 local function drawMarkerAt(coords, color, scaleMultiplier)
     local scale = Config.MarkerScale * (scaleMultiplier or 1.0)
     local markerCoords = asVec3(coords)
@@ -805,11 +814,17 @@ CreateThread(function()
 
                 if IsControlJustReleased(0, Config.InteractControl) then
                     if nearestAction.action == 'join' then
-                        TriggerServerEvent('standalone_extraction:server:joinRaid')
+                        if not openLobbyUi('deploy') then
+                            TriggerServerEvent('standalone_extraction:server:joinRaid')
+                        end
                     elseif nearestAction.action == 'sell' then
-                        TriggerServerEvent('standalone_extraction:server:sellSecuredLoot')
+                        if not openLobbyUi('trader') then
+                            TriggerServerEvent('standalone_extraction:server:sellSecuredLoot')
+                        end
                     elseif nearestAction.action == 'stats' then
-                        TriggerServerEvent('standalone_extraction:server:requestProfile')
+                        if not openLobbyUi('profile') then
+                            TriggerServerEvent('standalone_extraction:server:requestProfile')
+                        end
                     elseif nearestAction.action == 'loot' then
                         if GetResourceState('extraction_world') == 'started' and exports.extraction_world:HasActiveGuardThreat(nearestAction.id) then
                             notify(Config.Strings.area_hot)

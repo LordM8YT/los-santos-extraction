@@ -579,6 +579,11 @@ RegisterNetEvent('standalone_extraction:server:requestProfile', function()
     TriggerClientEvent('standalone_extraction:client:showProfile', source, buildProfileSnapshot(source))
 end)
 
+RegisterNetEvent('standalone_extraction:server:requestLobbySnapshot', function()
+    local source = source
+    TriggerClientEvent('extraction_lobby:client:update', source, buildProfileSnapshot(source))
+end)
+
 RegisterNetEvent('standalone_extraction:server:requestInventory', function(openUi)
     local source = source
     sendInventorySnapshot(source, openUi ~= false)

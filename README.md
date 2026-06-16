@@ -22,6 +22,8 @@ Custom project resources live in `resources/[extraction]`.
   Custom NUI stash, loadout, raid bag, drop, and sell interface.
 - `extraction_hud`
   Custom HUD, notifications, hints, raid timer, progress UI, minimap cleanup, and vanilla HUD suppression.
+- `extraction_lobby`
+  Safehouse lobby UI for deploy, stash/loadout access, selling, and profile overview.
 - `extraction_chat`
   Default chat theme override.
 - `standalone_extraction`
@@ -50,6 +52,7 @@ ensure extraction_chat
 ensure extraction_world
 ensure extraction_inventory
 ensure extraction_hud
+ensure extraction_lobby
 ensure standalone_extraction
 ```
 
