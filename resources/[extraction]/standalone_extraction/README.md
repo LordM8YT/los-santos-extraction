@@ -16,12 +16,10 @@ Standalone extraction prototype for FiveM. No ESX, QBCore, Qbox, `ox_target`, or
 
 ## Interactions
 
-- Go to the `Extraction Hub` blip at the airport.
-- Press `E` at `Start raid` to begin a run.
+- Fly in at the `Extraction Hub` and use the cinematic lobby UI for deploy, loadout, trader, quests, party, and settings.
 - Loot marked cache spots during the raid.
 - Press `E` at an extraction zone to secure carried loot.
-- Press `E` at the trader to sell secured loot.
-- Press `E` at the stats point to view stash and progression.
+- Legacy hub E-marker menus are disabled by default with `Config.Lobby.worldActionsEnabled = false`.
 
 ## Commands
 

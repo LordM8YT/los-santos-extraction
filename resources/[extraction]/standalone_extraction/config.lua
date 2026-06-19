@@ -48,6 +48,7 @@ Config.Lobby = {
     spawnDelay = 1500,
     openUiOnJoin = true,
     openUiDelay = 900,
+    worldActionsEnabled = false, -- New lobby UI replaces the old hub E-marker menus.
     spawn = vec4(-1037.76, -2737.83, 20.17, 240.0),
     join = {
         coords = vec3(-1040.31, -2732.27, 20.17),

@@ -788,7 +788,7 @@ CreateThread(function()
                         end
                     end
                 end
-            else
+            elseif Config.Lobby.worldActionsEnabled then
                 local lobbyActions = {
                     {
                         id = 'join',
