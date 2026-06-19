@@ -3,77 +3,185 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Extraction Lobby</title>
+    <title>Los Santos Extraction</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <div id="app" class="app" aria-hidden="true">
-      <section class="terminal" aria-label="Extraction operations console">
-        <aside class="brand-panel">
-          <div class="brand-mark">LSX</div>
-          <p class="eyebrow">Safehouse Terminal</p>
-          <h1>Operations</h1>
-          <p class="brief">
-            Prepare a kit, deploy into the city, secure loot, and get back alive.
-          </p>
+      <section class="screen" aria-label="Los Santos Extraction operations menu">
+        <aside class="side-rail">
+          <div class="brand-lockup">
+            <div class="brand-mark">LSX</div>
+            <div>
+              <p class="eyebrow">Los Santos</p>
+              <h1>Extraction</h1>
+            </div>
+          </div>
 
-          <div class="status-strip">
-            <span class="pulse"></span>
-            <span id="raidStatus">Standing by</span>
+          <nav class="nav-list" aria-label="Main menu">
+            <button class="nav-item is-active" data-view="deploy" type="button">Deploy</button>
+            <button class="nav-item" data-view="loadout" type="button">Loadout</button>
+            <button class="nav-item" data-view="trader" type="button">Traders</button>
+            <button class="nav-item" data-view="quests" type="button">Quests</button>
+            <button class="nav-item" data-view="party" type="button">Party</button>
+            <button class="nav-item" data-view="settings" type="button">Settings</button>
+          </nav>
+
+          <div class="operator-card">
+            <span class="status-dot"></span>
+            <div>
+              <p id="raidStatus">Safehouse ready</p>
+              <strong id="operatorLevel">Level 1 Contractor</strong>
+            </div>
           </div>
         </aside>
 
-        <main class="content-panel">
-          <header class="topbar">
+        <main class="main-stage">
+          <header class="stage-topbar">
             <div>
-              <p class="eyebrow">Contractor Profile</p>
-              <h2 id="profileTitle">Loading profile</h2>
+              <p class="eyebrow" id="viewKicker">Safehouse Operations</p>
+              <h2 id="viewTitle">Deploy</h2>
             </div>
-            <button id="closeButton" class="icon-button" type="button">Close</button>
+            <div class="top-actions">
+              <button class="small-button" data-action="refresh" type="button">Refresh</button>
+              <button id="closeButton" class="small-button" type="button">Close</button>
+            </div>
           </header>
 
-          <section id="stats" class="stats-grid"></section>
-
-          <section class="action-grid" aria-label="Lobby actions">
-            <button class="action-card primary" data-action="startRaid" type="button">
-              <span>Deploy</span>
-              <strong>Start Raid</strong>
-              <em>Enter a private Los Santos run.</em>
-            </button>
-            <button class="action-card" data-action="openInventory" type="button">
-              <span>Armory</span>
-              <strong>Stash / Loadout</strong>
-              <em>Review secured loot and raid kit.</em>
-            </button>
-            <button id="sellButton" class="action-card" data-action="sellLoot" type="button">
-              <span>Trader</span>
-              <strong>Sell Loot</strong>
-              <em id="sellHint">Requires secured sellable loot.</em>
-            </button>
-            <button class="action-card ghost" data-action="refresh" type="button">
-              <span>Sync</span>
-              <strong>Refresh</strong>
-              <em>Pull latest server profile.</em>
-            </button>
-          </section>
-
-          <section class="intel-grid">
-            <article class="panel">
-              <div class="panel-head">
-                <p class="eyebrow">Stash Preview</p>
-                <span id="stashMeta">0 items</span>
+          <section class="hero-grid">
+            <article class="raid-hero">
+              <div class="hero-copy">
+                <p class="eyebrow">Active Contract</p>
+                <h3>Los Santos Open Zone</h3>
+                <p>Enter the city, recover valuables, fight through AI resistance and extract before the run collapses.</p>
               </div>
-              <div id="stashPreview" class="item-list"></div>
+              <button class="deploy-button" data-action="startRaid" type="button">
+                <span>Deploy Now</span>
+                <strong>Start Raid</strong>
+              </button>
             </article>
 
-            <article class="panel">
-              <div class="panel-head">
-                <p class="eyebrow">Ready Kit</p>
-                <span id="loadoutMeta">Empty</span>
-              </div>
-              <div id="loadoutPreview" class="item-list"></div>
-            </article>
+            <section id="stats" class="stats-grid" aria-label="Profile stats"></section>
           </section>
+
+          <section class="view-stack">
+            <section class="view-panel is-active" data-panel="deploy">
+              <div class="card-grid three">
+                <button class="feature-card primary" data-action="startRaid" type="button">
+                  <span>Operation</span>
+                  <strong>Private Raid</strong>
+                  <em>Deploy solo into the current open-zone prototype.</em>
+                </button>
+                <button class="feature-card" data-action="openInventory" type="button">
+                  <span>Preparation</span>
+                  <strong>Stash / Loadout</strong>
+                  <em>Review secured loot and current raid-ready kit.</em>
+                </button>
+                <button id="sellButton" class="feature-card" data-action="sellLoot" type="button">
+                  <span>Economy</span>
+                  <strong>Sell Secured Loot</strong>
+                  <em id="sellHint">Requires secured sellable loot.</em>
+                </button>
+              </div>
+            </section>
+
+            <section class="view-panel" data-panel="loadout">
+              <div class="inventory-preview">
+                <article class="panel">
+                  <div class="panel-head">
+                    <p class="eyebrow">Stash Preview</p>
+                    <span id="stashMeta">0 items</span>
+                  </div>
+                  <div id="stashPreview" class="item-list"></div>
+                </article>
+                <article class="panel">
+                  <div class="panel-head">
+                    <p class="eyebrow">Ready Kit</p>
+                    <span id="loadoutMeta">Empty</span>
+                  </div>
+                  <div id="loadoutPreview" class="item-list"></div>
+                </article>
+              </div>
+            </section>
+
+            <section class="view-panel" data-panel="trader">
+              <div class="card-grid two">
+                <button class="feature-card" data-action="sellLoot" type="button">
+                  <span>Available</span>
+                  <strong>Sell Secured Loot</strong>
+                  <em>Convert extracted valuables into cash.</em>
+                </button>
+                <button class="feature-card locked" data-coming-soon="Trader shop" type="button">
+                  <span>Coming Soon</span>
+                  <strong>Buy Gear</strong>
+                  <em>Weapons, ammo, meds and armor vendors will live here.</em>
+                </button>
+              </div>
+            </section>
+
+            <section class="view-panel" data-panel="quests">
+              <div class="mission-board">
+                <article class="mission-card active">
+                  <span>Prototype Task</span>
+                  <strong>First Blood Sample</strong>
+                  <p>Extract with any medical supplies. Quest tracking is not connected yet.</p>
+                </article>
+                <article class="mission-card">
+                  <span>Coming Soon</span>
+                  <strong>Faction Contracts</strong>
+                  <p>Multi-step tasks, reputation and vendor unlocks.</p>
+                </article>
+                <article class="mission-card">
+                  <span>Coming Soon</span>
+                  <strong>Daily Operations</strong>
+                  <p>Short session goals with cash and XP rewards.</p>
+                </article>
+              </div>
+            </section>
+
+            <section class="view-panel" data-panel="party">
+              <div class="party-panel">
+                <div>
+                  <p class="eyebrow">Squad Assembly</p>
+                  <h3>Party System Placeholder</h3>
+                  <p>Future flow: invite players, select party leader, share raid bucket, deploy together.</p>
+                </div>
+                <button class="feature-card locked" data-coming-soon="Party system" type="button">
+                  <span>Coming Soon</span>
+                  <strong>Create Party</strong>
+                  <em>Waiting for shared raid bucket implementation.</em>
+                </button>
+              </div>
+            </section>
+
+            <section class="view-panel" data-panel="settings">
+              <div class="settings-grid">
+                <article class="setting-row">
+                  <div>
+                    <strong>Minimal Minimap</strong>
+                    <span>Radar only appears during raid traversal.</span>
+                  </div>
+                  <b>Enabled</b>
+                </article>
+                <article class="setting-row">
+                  <div>
+                    <strong>HUD Theme</strong>
+                    <span>Industrial tactical interface.</span>
+                  </div>
+                  <b>Default</b>
+                </article>
+                <article class="setting-row muted">
+                  <div>
+                    <strong>Audio / Controls</strong>
+                    <span>Settings persistence will be added later.</span>
+                  </div>
+                  <b>Soon</b>
+                </article>
+              </div>
+            </section>
+          </section>
+
+          <div id="toast" class="toast" aria-live="polite"></div>
         </main>
       </section>
     </div>

@@ -4,8 +4,9 @@ ExtractionHudConfig = {
         showOnlyInRaid = true,
         showOnFoot = false,
         showInVehicle = true,
-        zoom = 1100,
+        zoom = 1150,
         hideNorthBlip = true,
         forceSmallMap = true,
+        enforceIntervalMs = 500,
     },
 }

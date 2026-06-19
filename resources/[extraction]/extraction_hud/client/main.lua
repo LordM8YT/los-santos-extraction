@@ -20,6 +20,8 @@ local hudHiddenComponents = {
     22, -- HUD weapons
 }
 
+local nextMinimapEnforce = 0
+
 local raidState = {
     active = false,
     expiresAt = 0,
@@ -48,11 +50,17 @@ end
 
 local function applyMinimapCleanup(showRadar)
     local config = ExtractionHudConfig and ExtractionHudConfig.Minimap or {}
+    local now = GetGameTimer()
+    local shouldEnforce = now >= nextMinimapEnforce
 
     DisplayRadar(showRadar)
 
-    if config.forceSmallMap ~= false then
-        SetRadarBigmapEnabled(false, false)
+    if shouldEnforce then
+        nextMinimapEnforce = now + (config.enforceIntervalMs or 500)
+
+        if config.forceSmallMap ~= false then
+            SetRadarBigmapEnabled(false, false)
+        end
     end
 
     if config.hideNorthBlip ~= false then

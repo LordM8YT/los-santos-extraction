@@ -1,16 +1,36 @@
 const app = document.getElementById("app");
 const closeButton = document.getElementById("closeButton");
 const profileTitle = document.getElementById("profileTitle");
+const operatorLevel = document.getElementById("operatorLevel");
 const raidStatus = document.getElementById("raidStatus");
 const stats = document.getElementById("stats");
-const sellButton = document.getElementById("sellButton");
+const sellButtons = [...document.querySelectorAll('[data-action="sellLoot"]')];
 const sellHint = document.getElementById("sellHint");
 const stashPreview = document.getElementById("stashPreview");
 const loadoutPreview = document.getElementById("loadoutPreview");
 const stashMeta = document.getElementById("stashMeta");
 const loadoutMeta = document.getElementById("loadoutMeta");
+const viewKicker = document.getElementById("viewKicker");
+const viewTitle = document.getElementById("viewTitle");
+const toast = document.getElementById("toast");
 
 let currentSnapshot = null;
+let currentView = "deploy";
+let toastTimer = null;
+
+const viewMeta = {
+  deploy: ["Safehouse Operations", "Deploy"],
+  loadout: ["Preparation", "Loadout"],
+  trader: ["Market Access", "Traders"],
+  quests: ["Task Board", "Quests"],
+  party: ["Squad Assembly", "Party"],
+  settings: ["Client Preferences", "Settings"],
+};
+
+const viewAliases = {
+  profile: "loadout",
+  stats: "loadout",
+};
 
 const resourceName =
   typeof GetParentResourceName === "function"
@@ -58,6 +78,33 @@ function fallbackSnapshot() {
   };
 }
 
+function showToast(message) {
+  toast.textContent = message;
+  toast.classList.add("is-visible");
+
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toast.classList.remove("is-visible");
+  }, 2200);
+}
+
+function setView(view) {
+  const normalizedView = viewAliases[view] || view;
+  currentView = viewMeta[normalizedView] ? normalizedView : "deploy";
+
+  document.querySelectorAll(".nav-item").forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.view === currentView);
+  });
+
+  document.querySelectorAll(".view-panel").forEach((panel) => {
+    panel.classList.toggle("is-active", panel.dataset.panel === currentView);
+  });
+
+  const [kicker, title] = viewMeta[currentView];
+  viewKicker.textContent = kicker;
+  viewTitle.textContent = title;
+}
+
 function isLoadoutItem(entry) {
   return entry.type === "weapon" || entry.type === "ammo";
 }
@@ -102,6 +149,7 @@ function renderStats(snapshot) {
     ["Level", formatNumber(snapshot.level)],
     ["XP", formatNumber(snapshot.xp)],
     ["Raids", formatNumber(snapshot.raids)],
+    ["Extracts", formatNumber(snapshot.extractions)],
     ["Best Run", `$${formatNumber(snapshot.bestRunValue)}`],
   ];
 
@@ -125,10 +173,10 @@ function render(snapshot) {
   const sellableStash = stash.filter((entry) => !isLoadoutItem(entry));
   const loadout = stash.filter(isLoadoutItem);
   const totalStashItems = stash.reduce((total, entry) => total + Number(entry.count || 0), 0);
+  const levelText = snapshot.loading ? "Loading contractor" : `Level ${formatNumber(snapshot.level)} Contractor`;
 
-  profileTitle.textContent = snapshot.loading
-    ? "Loading profile"
-    : `Level ${formatNumber(snapshot.level)} Contractor`;
+  profileTitle.textContent = levelText;
+  operatorLevel.textContent = levelText;
   raidStatus.textContent = snapshot.raidActive ? "Raid active" : "Safehouse ready";
 
   renderStats(snapshot);
@@ -138,7 +186,10 @@ function render(snapshot) {
   stashMeta.textContent = `${formatNumber(totalStashItems)} items / $${formatNumber(snapshot.stashValue)}`;
   loadoutMeta.textContent = loadout.length > 0 ? `${formatNumber(loadout.length)} item types` : "Empty";
 
-  sellButton.disabled = !snapshot.canSell || sellableStash.length === 0;
+  const canSell = snapshot.canSell && sellableStash.length > 0;
+  sellButtons.forEach((button) => {
+    button.disabled = !canSell;
+  });
   sellHint.textContent = snapshot.canSell
     ? "Convert secured loot into cash."
     : "Use this from the trader terminal.";
@@ -150,6 +201,7 @@ function open(payload = {}) {
   document.body.classList.add("lobby-open");
   app.classList.add("is-open");
   app.setAttribute("aria-hidden", "false");
+  setView(payload.view || currentView || "deploy");
   render(payload.snapshot || currentSnapshot || fallbackSnapshot());
 }
 
@@ -168,6 +220,10 @@ window.addEventListener("message", (event) => {
     open(payload);
   }
 
+  if (action === "setView") {
+    setView(payload?.view || "deploy");
+  }
+
   if (action === "update") {
     render(payload?.snapshot || currentSnapshot || fallbackSnapshot());
   }
@@ -178,6 +234,18 @@ window.addEventListener("message", (event) => {
 });
 
 document.addEventListener("click", (event) => {
+  const navButton = event.target?.closest("[data-view]");
+  if (navButton) {
+    setView(navButton.dataset.view);
+    return;
+  }
+
+  const soonButton = event.target?.closest("[data-coming-soon]");
+  if (soonButton) {
+    showToast(`${soonButton.dataset.comingSoon} is coming in a future milestone.`);
+    return;
+  }
+
   const action = event.target?.closest("[data-action]")?.dataset?.action;
 
   if (!action) {
