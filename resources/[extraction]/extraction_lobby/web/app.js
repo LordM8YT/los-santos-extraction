@@ -14,6 +14,8 @@ const app = document.getElementById("app");
 const closeButton = document.getElementById("closeButton");
 const profileTitle = document.getElementById("profileTitle");
 const operatorLevel = document.getElementById("operatorLevel");
+const profileXp = document.getElementById("profileXp");
+const profileCash = document.getElementById("profileCash");
 const raidStatus = document.getElementById("raidStatus");
 const stats = document.getElementById("stats");
 const sellButtons = [...document.querySelectorAll('[data-action="sellLoot"]')];
@@ -200,8 +202,10 @@ function render(snapshot) {
   const levelText = snapshot.loading ? "Loading contractor" : `Level ${formatNumber(snapshot.level)} Contractor`;
 
   setText(profileTitle, levelText);
-  setText(operatorLevel, levelText);
-  setText(raidStatus, snapshot.raidActive ? "Raid active" : "Safehouse ready");
+  setText(operatorLevel, formatNumber(snapshot.level));
+  setText(profileXp, formatNumber(snapshot.xp));
+  setText(profileCash, formatNumber(snapshot.cash));
+  setText(raidStatus, snapshot.raidActive ? "Safehouse ready / raid active" : "Safehouse ready");
 
   renderStats(snapshot);
   renderList(stashPreview, sellableStash, "No secured sellable loot yet");
