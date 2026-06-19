@@ -14,6 +14,8 @@ A standalone FiveM PvPvE extraction shooter prototype. The goal is to build a ga
 
 Custom project resources live in `resources/[extraction]`.
 
+- `extraction_items`
+  Shared item registry and tetris-ready item/container definitions.
 - `extraction_core`
   Shared foundation for identifiers, logging, constants, and future routing bucket ownership.
 - `extraction_world`
@@ -47,6 +49,7 @@ Use `server.example.cfg` as the safe handoff template. It currently starts:
 
 ```cfg
 ensure ox_lib
+ensure extraction_items
 ensure extraction_core
 ensure extraction_chat
 ensure extraction_world

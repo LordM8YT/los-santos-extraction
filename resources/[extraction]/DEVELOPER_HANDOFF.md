@@ -4,6 +4,8 @@ This folder contains a standalone FiveM extraction prototype. The current goal i
 
 ## Resource Overview
 
+- `extraction_items`
+  Shared item registry with tetris metadata and future container templates.
 - `extraction_core`
   Modular v2 foundation: shared config, constants, logging, player identifiers, and routing bucket allocation.
 - `standalone_extraction`
@@ -33,7 +35,7 @@ Third-party dependencies are kept outside this folder in `resources/[overextende
 - Raids are private instances per player using routing buckets.
 - `extraction_core` now owns the future shared bucket allocator, but the current prototype still uses its existing raid flow until migrated.
 - Player data is stored in `standalone_extraction/data/players.json`.
-- Inventory is custom and standalone for now.
+- Inventory is custom and standalone for now. `extraction_items` is the new shared registry for the future tetris inventory migration.
 - `ox_lib` is enabled. `oxmysql` and `ox_inventory` are downloaded into `resources/[overextended]` but intentionally not auto-started yet.
 - User-facing text and documentation should stay in English for easier external collaboration.
 - Internal item keys should remain stable because saved player data references them.
