@@ -12,6 +12,12 @@ This is the first low-risk step toward a custom `extraction_inventory_v2` with t
 - Creates stable exports other resources can use later.
 - Leaves room for monetization entitlements without putting Tebex logic in inventory code.
 
+
+## Item Icons
+
+Each item should define an `image` filename. Icons live in `web/images/items` and are exposed by this resource through `fxmanifest.lua`.
+
+Use ox_inventory-compatible filenames where practical, but keep copied assets inside this resource so the project remains standalone.
 ## Current Exports
 
 - `GetItem(itemName)`

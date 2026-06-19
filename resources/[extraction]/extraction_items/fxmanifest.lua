@@ -11,5 +11,9 @@ shared_scripts {
     'shared/items.lua'
 }
 
+files {
+    'web/images/items/*'
+}
+
 server_script 'server/main.lua'
 client_script 'client/main.lua'
