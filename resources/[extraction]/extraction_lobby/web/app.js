@@ -1,3 +1,15 @@
+function setText(element, value) {
+  if (element) {
+    element.textContent = value;
+  }
+}
+
+function setHtml(element, value) {
+  if (element) {
+    element.innerHTML = value;
+  }
+}
+
 const app = document.getElementById("app");
 const closeButton = document.getElementById("closeButton");
 const profileTitle = document.getElementById("profileTitle");
@@ -79,7 +91,11 @@ function fallbackSnapshot() {
 }
 
 function showToast(message) {
-  toast.textContent = message;
+  if (!toast) {
+    return;
+  }
+
+  setText(toast, message);
   toast.classList.add("is-visible");
 
   clearTimeout(toastTimer);
@@ -101,8 +117,8 @@ function setView(view) {
   });
 
   const [kicker, title] = viewMeta[currentView];
-  viewKicker.textContent = kicker;
-  viewTitle.textContent = title;
+  setText(viewKicker, kicker);
+  setText(viewTitle, title);
 }
 
 function isLoadoutItem(entry) {
@@ -118,12 +134,16 @@ function itemValue(entry) {
 }
 
 function renderList(target, entries, emptyText) {
-  if (!entries || entries.length === 0) {
-    target.innerHTML = `<div class="empty">${escapeHtml(emptyText)}</div>`;
+  if (!target) {
     return;
   }
 
-  target.innerHTML = entries
+  if (!entries || entries.length === 0) {
+    setHtml(target, `<div class="empty">${escapeHtml(emptyText)}</div>`);
+    return;
+  }
+
+  setHtml(target, entries
     .slice(0, 8)
     .map((entry) => {
       const count = formatNumber(entry.count);
@@ -140,10 +160,14 @@ function renderList(target, entries, emptyText) {
         </div>
       `;
     })
-    .join("");
+    .join(""));
 }
 
 function renderStats(snapshot) {
+  if (!stats) {
+    return;
+  }
+
   const values = [
     ["Cash", `$${formatNumber(snapshot.cash)}`],
     ["Level", formatNumber(snapshot.level)],
@@ -153,7 +177,7 @@ function renderStats(snapshot) {
     ["Best Run", `$${formatNumber(snapshot.bestRunValue)}`],
   ];
 
-  stats.innerHTML = values
+  setHtml(stats, values
     .map(([label, value]) => {
       return `
         <div class="stat">
@@ -162,7 +186,7 @@ function renderStats(snapshot) {
         </div>
       `;
     })
-    .join("");
+    .join(""));
 }
 
 function render(snapshot) {
@@ -175,24 +199,25 @@ function render(snapshot) {
   const totalStashItems = stash.reduce((total, entry) => total + Number(entry.count || 0), 0);
   const levelText = snapshot.loading ? "Loading contractor" : `Level ${formatNumber(snapshot.level)} Contractor`;
 
-  profileTitle.textContent = levelText;
-  operatorLevel.textContent = levelText;
-  raidStatus.textContent = snapshot.raidActive ? "Raid active" : "Safehouse ready";
+  setText(profileTitle, levelText);
+  setText(operatorLevel, levelText);
+  setText(raidStatus, snapshot.raidActive ? "Raid active" : "Safehouse ready");
 
   renderStats(snapshot);
   renderList(stashPreview, sellableStash, "No secured sellable loot yet");
   renderList(loadoutPreview, loadout, "No loadout items in stash");
 
-  stashMeta.textContent = `${formatNumber(totalStashItems)} items / $${formatNumber(snapshot.stashValue)}`;
-  loadoutMeta.textContent = loadout.length > 0 ? `${formatNumber(loadout.length)} item types` : "Empty";
+  setText(stashMeta, `${formatNumber(totalStashItems)} items / $${formatNumber(snapshot.stashValue)}`);
+  setText(loadoutMeta, loadout.length > 0 ? `${formatNumber(loadout.length)} item types` : "Empty");
 
   const canSell = snapshot.canSell && sellableStash.length > 0;
   sellButtons.forEach((button) => {
     button.disabled = !canSell;
   });
-  sellHint.textContent = snapshot.canSell
-    ? "Convert secured loot into cash."
-    : "Use this from the trader terminal.";
+  setText(
+    sellHint,
+    snapshot.canSell ? "Convert secured loot into cash." : "Use this from the trader terminal."
+  );
 }
 
 function open(payload = {}) {
@@ -261,7 +286,9 @@ document.addEventListener("keyup", (event) => {
   }
 });
 
-closeButton.addEventListener("click", () => post("close"));
+if (closeButton) {
+  closeButton.addEventListener("click", () => post("close"));
+}
 
 if (new URLSearchParams(window.location.search).has("demo")) {
   open({
