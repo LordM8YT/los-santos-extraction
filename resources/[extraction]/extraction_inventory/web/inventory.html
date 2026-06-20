@@ -28,16 +28,33 @@
 <body>
   <main id="app" class="app" aria-hidden="true">
     <section class="shell">
+      <div class="atmosphere" aria-hidden="true"></div>
       <header class="hero">
         <div>
-          <p class="eyebrow">EXTRACTION OPS</p>
-          <h1>Inventory</h1>
+          <p class="eyebrow">LSX Armory</p>
+          <h1>Loadout Terminal</h1>
+          <span class="subtitle">Secure stash, raid bag and field kit overview.</span>
         </div>
         <div class="actions">
-          <button id="refreshButton" class="ghost">Refresh</button>
-          <button id="closeButton" class="ghost">Close</button>
+          <button id="refreshButton" class="ghost" type="button">Refresh</button>
+          <button id="closeButton" class="ghost" type="button">Close</button>
         </div>
       </header>
+
+      <section class="summary-strip" aria-label="Inventory summary">
+        <article>
+          <span>Secured Value</span>
+          <strong id="stashValueMeta">$0</strong>
+        </article>
+        <article>
+          <span>Carry Weight</span>
+          <strong id="carryWeightMeta">0 / 0</strong>
+        </article>
+        <article>
+          <span>Mode</span>
+          <strong id="modeMeta">Safehouse</strong>
+        </article>
+      </section>
 
       <section class="layout">
         <article class="panel">
@@ -46,7 +63,7 @@
               <p class="panel-kicker">Secure Storage</p>
               <h2>Stash</h2>
             </div>
-            <button id="sellButton" class="accent">Sell All</button>
+            <button id="sellButton" class="accent" type="button">Sell All</button>
           </div>
           <div id="stashList" class="list"></div>
         </article>

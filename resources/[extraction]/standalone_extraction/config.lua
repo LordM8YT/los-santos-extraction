@@ -257,141 +257,75 @@ Config.LootTables = {
 
 Config.Extractions = {
     {
-        id = 'airport_service_gate',
-        label = 'Airport service gate',
-        coords = vec3(-1016.72, -3024.92, 13.95),
+        id = 'lsia_service_gate',
+        label = 'LSIA service gate',
+        coords = vec3(-1031.18, -2734.62, 20.17),
         color = { r = 110, g = 255, b = 150, a = 155 }
     },
     {
-        id = 'lsia_cargo_road',
-        label = 'LSIA cargo road',
-        coords = vec3(-1133.88, -2436.26, 13.95),
+        id = 'storm_drain_canal',
+        label = 'Storm drain canal',
+        coords = vec3(714.28, -2057.53, 29.31),
         color = { r = 110, g = 255, b = 150, a = 155 }
     },
     {
-        id = 'vespucci_canals_lot',
-        label = 'Vespucci canals lot',
-        coords = vec3(-1088.72, -1277.36, 5.86),
+        id = 'la_puerta_channel',
+        label = 'La Puerta channel',
+        coords = vec3(-794.44, -1286.35, 5.15),
         color = { r = 110, g = 255, b = 150, a = 155 }
     },
     {
-        id = 'del_perro_service_lot',
-        label = 'Del Perro service lot',
-        coords = vec3(-1607.23, -1002.82, 13.02),
+        id = 'del_perro_lifeguard_boat',
+        label = 'Del Perro lifeguard boat',
+        coords = vec3(-1837.87, -1224.21, 13.02),
         color = { r = 110, g = 255, b = 150, a = 155 }
     },
     {
-        id = 'little_seoul_gas',
-        label = 'Little Seoul gas station',
-        coords = vec3(-705.31, -916.15, 19.22),
+        id = 'great_ocean_highway_ramp',
+        label = 'Great Ocean highway ramp',
+        coords = vec3(-2194.92, -388.28, 13.31),
         color = { r = 110, g = 255, b = 150, a = 155 }
     },
     {
-        id = 'rockford_backstreet',
-        label = 'Rockford backstreet',
-        coords = vec3(-622.29, -232.81, 38.06),
+        id = 'vinewood_hills_escape_road',
+        label = 'Vinewood hills escape road',
+        coords = vec3(-545.47, 501.19, 105.08),
         color = { r = 110, g = 255, b = 150, a = 155 }
     },
     {
-        id = 'alta_parking_exit',
-        label = 'Alta parking exit',
-        coords = vec3(-267.56, -961.44, 31.22),
+        id = 'east_vinewood_tunnel',
+        label = 'East Vinewood tunnel',
+        coords = vec3(764.04, -120.34, 74.09),
         color = { r = 110, g = 255, b = 150, a = 155 }
     },
     {
-        id = 'legion_square_garage',
-        label = 'Legion Square garage',
-        coords = vec3(215.65, -810.12, 30.73),
+        id = 'olympic_freeway_underpass',
+        label = 'Olympic freeway underpass',
+        coords = vec3(594.66, -1697.78, 25.95),
         color = { r = 110, g = 255, b = 150, a = 155 }
     },
     {
-        id = 'pillbox_ambulance_bay',
-        label = 'Pillbox ambulance bay',
-        coords = vec3(322.23, -583.84, 43.28),
+        id = 'rancho_rail_tunnel',
+        label = 'Rancho rail tunnel',
+        coords = vec3(431.83, -1770.19, 28.73),
         color = { r = 110, g = 255, b = 150, a = 155 }
     },
     {
-        id = 'hawick_side_street',
-        label = 'Hawick side street',
-        coords = vec3(304.18, -202.73, 54.22),
+        id = 'elysian_island_ferry_ramp',
+        label = 'Elysian Island ferry ramp',
+        coords = vec3(495.36, -3330.42, 6.07),
         color = { r = 110, g = 255, b = 150, a = 155 }
     },
     {
-        id = 'strawberry_service_station',
-        label = 'Strawberry service station',
-        coords = vec3(288.59, -1266.26, 29.44),
-        color = { r = 110, g = 255, b = 150, a = 155 }
-    },
-    {
-        id = 'davis_mega_mall',
-        label = 'Davis mega mall',
-        coords = vec3(45.62, -1748.01, 29.60),
-        color = { r = 110, g = 255, b = 150, a = 155 }
-    },
-    {
-        id = 'rancho_rail_pullout',
-        label = 'Rancho rail pullout',
-        coords = vec3(492.16, -1510.72, 29.29),
-        color = { r = 110, g = 255, b = 150, a = 155 }
-    },
-    {
-        id = 'cypress_loading_exit',
-        label = 'Cypress loading exit',
-        coords = vec3(852.24, -2118.46, 30.52),
-        color = { r = 110, g = 255, b = 150, a = 155 }
-    },
-    {
-        id = 'la_mesa_service_road',
-        label = 'La Mesa service road',
-        coords = vec3(945.77, -1255.72, 25.54),
-        color = { r = 110, g = 255, b = 150, a = 155 }
-    },
-    {
-        id = 'mirror_park_lakeside',
-        label = 'Mirror Park lakeside',
-        coords = vec3(1077.18, -711.56, 58.22),
-        color = { r = 110, g = 255, b = 150, a = 155 }
-    },
-    {
-        id = 'east_vinewood_depot',
-        label = 'East Vinewood depot',
-        coords = vec3(889.74, -179.56, 74.70),
-        color = { r = 110, g = 255, b = 150, a = 155 }
-    },
-    {
-        id = 'murrieta_heights_store',
-        label = 'Murrieta Heights store',
-        coords = vec3(1123.74, -475.36, 66.49),
-        color = { r = 110, g = 255, b = 150, a = 155 }
-    },
-    {
-        id = 'el_burro_overlook',
-        label = 'El Burro overlook',
-        coords = vec3(1375.04, -1530.37, 57.12),
-        color = { r = 110, g = 255, b = 150, a = 155 }
-    },
-    {
-        id = 'murrieta_oilfield',
-        label = 'Murrieta oilfield road',
-        coords = vec3(1563.86, -2165.83, 77.42),
+        id = 'terminal_breakwater',
+        label = 'Terminal breakwater',
+        coords = vec3(1294.62, -3348.54, 5.90),
         color = { r = 110, g = 255, b = 150, a = 155 }
     },
     {
         id = 'docks_north_gate',
         label = 'Docks north gate',
         coords = vec3(1192.04, -2962.69, 5.90),
-        color = { r = 110, g = 255, b = 150, a = 155 }
-    },
-    {
-        id = 'terminal_service_exit',
-        label = 'Terminal service exit',
-        coords = vec3(884.85, -3186.74, 5.90),
-        color = { r = 110, g = 255, b = 150, a = 155 }
-    },
-    {
-        id = 'storm_drain_pullout',
-        label = 'Storm drain pullout',
-        coords = vec3(1016.65, -2327.69, 30.51),
         color = { r = 110, g = 255, b = 150, a = 155 }
     }
 }

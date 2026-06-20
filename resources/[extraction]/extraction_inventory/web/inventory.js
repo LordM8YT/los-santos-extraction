@@ -6,6 +6,9 @@ const sellButton = document.getElementById("sellButton");
 const refreshButton = document.getElementById("refreshButton");
 const closeButton = document.getElementById("closeButton");
 const bagMeta = document.getElementById("bagMeta");
+const stashValueMeta = document.getElementById("stashValueMeta");
+const carryWeightMeta = document.getElementById("carryWeightMeta");
+const modeMeta = document.getElementById("modeMeta");
 const secondaryKicker = document.getElementById("secondaryKicker");
 const secondaryTitle = document.getElementById("secondaryTitle");
 
@@ -30,6 +33,27 @@ function formatNumber(value) {
   return new Intl.NumberFormat("en-US").format(Number(value || 0));
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function setText(element, value) {
+  if (element) {
+    element.textContent = value;
+  }
+}
+
+function setHtml(element, value) {
+  if (element) {
+    element.innerHTML = value;
+  }
+}
+
 function isLoadoutItem(entry) {
   return entry.type === "weapon" || entry.type === "ammo";
 }
@@ -48,12 +72,16 @@ function showUi(snapshot) {
 }
 
 function renderList(target, entries, { allowDrop = false } = {}) {
-  if (!entries || entries.length === 0) {
-    target.innerHTML = `<div class="empty">Empty</div>`;
+  if (!target) {
     return;
   }
 
-  target.innerHTML = entries
+  if (!entries || entries.length === 0) {
+    setHtml(target, `<div class="empty">No items available</div>`);
+    return;
+  }
+
+  setHtml(target, entries
     .map((entry) => {
       const type = entry.type || "loot";
       const value =
@@ -61,21 +89,21 @@ function renderList(target, entries, { allowDrop = false } = {}) {
           ? "Loadout"
           : `$${formatNumber(entry.count * entry.value)}`;
       const button = allowDrop
-        ? `<button class="danger" data-action="drop" data-item="${entry.name}">Drop 1</button>`
+        ? `<button class="danger" data-action="drop" data-item="${escapeHtml(entry.name)}">Drop 1</button>`
         : "";
 
       return `
         <div class="item item-${type}">
           <div class="item-main">
-            <strong>${entry.label}</strong>
-            <span>${entry.count}x | ${entry.weight} wt each | ${type}</span>
+            <strong>${escapeHtml(entry.label)}</strong>
+            <span>${formatNumber(entry.count)}x | ${formatNumber(entry.weight)} wt each | ${escapeHtml(type)}</span>
           </div>
           <div class="item-value">${value}</div>
           ${button}
         </div>
       `;
     })
-    .join("");
+    .join(""));
 }
 
 function render(snapshot) {
@@ -98,13 +126,16 @@ function render(snapshot) {
   renderList(stashList, stashEntries);
   renderList(bagList, secondaryEntries, { allowDrop: snapshot.raidActive });
 
-  secondaryKicker.textContent = snapshot.raidActive ? "On Character" : "Raid Ready";
-  secondaryTitle.textContent = snapshot.raidActive ? "Raid Bag" : "Loadout";
-  bagMeta.textContent = snapshot.raidActive
+  setText(secondaryKicker, snapshot.raidActive ? "On Character" : "Raid Ready");
+  setText(secondaryTitle, snapshot.raidActive ? "Raid Bag" : "Loadout");
+  setText(bagMeta, snapshot.raidActive
     ? `${formatNumber(snapshot.carryWeight)} / ${formatNumber(snapshot.maxCarryWeight)}`
     : loadoutEntries.length > 0
       ? "Ready"
-      : "Empty";
+      : "Empty");
+  setText(stashValueMeta, `$${formatNumber(snapshot.stashValue)}`);
+  setText(carryWeightMeta, `${formatNumber(snapshot.carryWeight)} / ${formatNumber(snapshot.maxCarryWeight)}`);
+  setText(modeMeta, snapshot.raidActive ? "In Raid" : "Safehouse");
   sellButton.disabled = !snapshot.canSell || stashEntries.length === 0;
 }
 

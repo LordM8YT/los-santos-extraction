@@ -21,11 +21,15 @@ Custom project resources live in `resources/[extraction]`.
 - `extraction_world`
   Loot crate definitions, spawned cache props, guard zones, and guard threat checks.
 - `extraction_inventory`
-  Custom NUI stash, loadout, raid bag, drop, and sell interface.
+  Armory-style NUI stash, loadout, raid bag, drop, and sell interface.
 - `extraction_hud`
   Custom HUD, notifications, hints, raid timer, progress UI, minimap cleanup, and vanilla HUD suppression.
 - `extraction_lobby`
-  Safehouse lobby UI for deploy, stash/loadout access, selling, and profile overview.
+  Cinematic safehouse lobby UI for deploy, stash/loadout access, selling, profile overview, and client HUD settings.
+- `extraction_pause`
+  Custom pause shell that suppresses native GTA pause/map and routes players to LSX menus.
+- `extraction_loadscreen`
+  Custom LSX loading screen.
 - `extraction_chat`
   Default chat theme override.
 - `standalone_extraction`
@@ -50,12 +54,14 @@ Use `server.example.cfg` as the safe handoff template. It currently starts:
 ```cfg
 ensure ox_lib
 ensure extraction_items
+ensure extraction_loadscreen
 ensure extraction_core
 ensure extraction_chat
 ensure extraction_world
 ensure extraction_inventory
 ensure extraction_hud
 ensure extraction_lobby
+ensure extraction_pause
 ensure standalone_extraction
 ```
 
