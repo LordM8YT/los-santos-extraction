@@ -45,10 +45,11 @@ Config.Population = {
 
 Config.Lobby = {
     spawnOnJoin = true,
-    spawnDelay = 1500,
+    spawnDelay = 250,
     openUiOnJoin = true,
-    openUiDelay = 900,
+    openUiDelay = 350,
     worldActionsEnabled = false, -- New lobby UI replaces the old hub E-marker menus.
+    stagingModel = 'mp_m_freemode_01',
     spawn = vec4(-1037.76, -2737.83, 20.17, 240.0),
     join = {
         coords = vec3(-1040.31, -2732.27, 20.17),

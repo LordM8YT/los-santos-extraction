@@ -66,7 +66,7 @@ document.addEventListener("click", (event) => {
   post(action);
 });
 
-document.addEventListener("keyup", (event) => {
+document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     post("close");
   }

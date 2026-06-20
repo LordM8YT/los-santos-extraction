@@ -135,6 +135,7 @@ end, false)
 
 RegisterNUICallback('close', function(_, cb)
     closeUi()
+    TriggerEvent('standalone_extraction:client:lobbyClosedByUser')
     cb({ ok = true })
 end)
 
@@ -150,8 +151,8 @@ RegisterNUICallback('startRaid', function(_, cb)
 end)
 
 RegisterNUICallback('openInventory', function(_, cb)
-    closeUi()
-    TriggerServerEvent('standalone_extraction:server:requestInventory', true)
+    send('setView', { view = 'loadout' })
+    requestSnapshot()
     cb({ ok = true })
 end)
 

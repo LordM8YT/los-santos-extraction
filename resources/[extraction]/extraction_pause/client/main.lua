@@ -1,4 +1,5 @@
 local uiOpen = false
+local raidActive = false
 
 local function send(action, payload)
     SendNUIMessage({
@@ -43,7 +44,13 @@ end)
 
 RegisterNUICallback('openInventory', function(_, cb)
     closePause()
-    TriggerServerEvent('standalone_extraction:server:requestInventory', true)
+
+    if raidActive then
+        TriggerServerEvent('standalone_extraction:server:requestInventory', true)
+    else
+        TriggerEvent('extraction_lobby:client:open', 'loadout')
+    end
+
     cb({ ok = true })
 end)
 
@@ -51,6 +58,15 @@ RegisterNUICallback('leaveRaid', function(_, cb)
     closePause()
     TriggerServerEvent('standalone_extraction:server:leaveRaid')
     cb({ ok = true })
+end)
+
+RegisterNetEvent('standalone_extraction:client:startRaid', function()
+    raidActive = true
+end)
+
+RegisterNetEvent('standalone_extraction:client:endRaid', function()
+    raidActive = false
+    closePause()
 end)
 
 AddEventHandler('onResourceStop', function(resourceName)

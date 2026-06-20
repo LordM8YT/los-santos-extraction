@@ -22,6 +22,9 @@ local interactionBusy = false
 local deathReported = false
 local lootSpots = {}
 local hasHandledInitialSpawn = false
+local spawnManagerConfigured = false
+local lobbySpawnReady = false
+local lobbyStagingActive = false
 local lastHudHint = ''
 
 local function asVec3(coords)
@@ -150,6 +153,38 @@ local function openLobbyUi(defaultView)
 
     TriggerEvent('extraction_lobby:client:open', defaultView or 'deploy')
     return true
+end
+
+local function configureSpawnManager()
+    if spawnManagerConfigured then
+        return
+    end
+
+    spawnManagerConfigured = true
+
+    if GetResourceState('spawnmanager') == 'started' then
+        exports.spawnmanager:setAutoSpawn(false)
+    end
+end
+
+local function setLobbyStaging(enabled)
+    lobbyStagingActive = enabled
+
+    local ped = PlayerPedId()
+    if not DoesEntityExist(ped) then
+        return
+    end
+
+    FreezeEntityPosition(ped, enabled)
+    SetEntityInvincible(ped, enabled)
+    SetEntityVisible(ped, not enabled, false)
+    SetEntityCollision(ped, not enabled, not enabled)
+    SetPlayerControl(PlayerId(), not enabled, 0)
+
+    if enabled then
+        ClearPedTasksImmediately(ped)
+        SetCurrentPedWeapon(ped, joaat('WEAPON_UNARMED'), true)
+    end
 end
 
 local function drawMarkerAt(coords, color, scaleMultiplier)
@@ -316,7 +351,38 @@ local function moveToLobbySpawn()
         return false
     end
 
-    teleportTo(Config.Lobby.spawn)
+    configureSpawnManager()
+    lobbySpawnReady = false
+
+    local spawn = Config.Lobby.spawn
+    DoScreenFadeOut(0)
+
+    local function finishLobbySpawn()
+        local ped = PlayerPedId()
+        SetEntityCoordsNoOffset(ped, spawn.x, spawn.y, spawn.z, false, false, false)
+        SetEntityHeading(ped, spawn.w or 0.0)
+        ClearPedTasksImmediately(ped)
+        ClearPedBloodDamage(ped)
+        SetEntityHealth(ped, 200)
+        setLobbyStaging(true)
+        lobbySpawnReady = true
+        DoScreenFadeIn(500)
+    end
+
+    if GetResourceState('spawnmanager') == 'started' then
+        exports.spawnmanager:spawnPlayer({
+            x = spawn.x,
+            y = spawn.y,
+            z = spawn.z,
+            heading = spawn.w or 0.0,
+            model = Config.Lobby.stagingModel or 'mp_m_freemode_01',
+            skipFade = true,
+        }, finishLobbySpawn)
+    else
+        NetworkResurrectLocalPlayer(spawn.x, spawn.y, spawn.z, spawn.w or 0.0, true, false)
+        finishLobbySpawn()
+    end
+
     return true
 end
 
@@ -329,6 +395,11 @@ local function openLobbyAfterFlyIn()
 
     if raidState.active then
         return
+    end
+
+    local timeout = GetGameTimer() + 5000
+    while not lobbySpawnReady and GetGameTimer() < timeout do
+        Wait(50)
     end
 
     openLobbyUi('deploy')
@@ -608,6 +679,7 @@ RegisterNetEvent('standalone_extraction:client:startRaid', function(payload)
     raidState.expiresAt = GetGameTimer() + ((payload.durationSeconds or Config.Raid.durationSeconds) * 1000)
     raidState.maxCarryWeight = payload.maxCarryWeight or Config.Raid.maxCarryWeight
 
+    setLobbyStaging(false)
     createExtractionBlips()
     createLootBlips()
     CreateThread(spawnRaidVehicles)
@@ -631,6 +703,19 @@ RegisterNetEvent('standalone_extraction:client:showProfile', function(profile)
     showProfileSummary(profile)
 end)
 
+RegisterNetEvent('standalone_extraction:client:lobbyClosedByUser', function()
+    if not lobbyStagingActive or raidState.active then
+        return
+    end
+
+    CreateThread(function()
+        Wait(150)
+        if lobbyStagingActive and not raidState.active then
+            openLobbyUi('deploy')
+        end
+    end)
+end)
+
 RegisterNetEvent('standalone_extraction:client:endRaid', function(payload)
     if payload.status == 'dead' then
         Wait(Config.Raid.deathRespawnDelay)
@@ -639,6 +724,7 @@ RegisterNetEvent('standalone_extraction:client:endRaid', function(payload)
 
     teleportTo(payload.lobby)
     resetRaidState()
+    setLobbyStaging(true)
 
     if payload.message and payload.message ~= '' then
         notify(payload.message)
@@ -647,6 +733,8 @@ RegisterNetEvent('standalone_extraction:client:endRaid', function(payload)
     if payload.profile then
         showProfileSummary(payload.profile)
     end
+
+    openLobbyAfterFlyIn()
 end)
 
 AddEventHandler('playerSpawned', function()
@@ -682,6 +770,7 @@ RegisterCommand('raidbag', function()
 end, false)
 
 CreateThread(function()
+    configureSpawnManager()
     refreshLootSpots()
     createLobbyBlips()
 

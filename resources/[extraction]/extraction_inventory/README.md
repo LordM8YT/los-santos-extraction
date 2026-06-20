@@ -1,16 +1,16 @@
 # extraction_inventory
 
-Standalone inventory UI resource for the extraction prototype.
+Raid field inventory UI resource for the extraction prototype.
 
 ## Responsibilities
 
-- Provides a standalone NUI for stash and raid bag views.
+- Provides a standalone NUI for raid bag views while in an active raid.
+- Routes safehouse inventory access back to the lobby loadout screen.
 - Lets players drop items from the raid bag.
-- Lets players sell secured loot through the UI while standing at the trader.
 
 ## Controls
 
-- `I` opens inventory.
+- `I` opens the lobby loadout screen in safehouse and the field inventory while in raid.
 - `Escape` closes inventory.
 
 ## Important Files

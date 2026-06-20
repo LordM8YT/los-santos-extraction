@@ -20,6 +20,8 @@ Custom project resources live in `resources/[extraction]`.
   Shared foundation for identifiers, logging, constants, and future routing bucket ownership.
 - `extraction_world`
   Loot crate definitions, spawned cache props, guard zones, and guard threat checks.
+- `extraction_character`
+  Foundation for future custom operators, character slots, models, components, and skins.
 - `extraction_inventory`
   Armory-style NUI stash, loadout, raid bag, drop, and sell interface.
 - `extraction_hud`
@@ -58,6 +60,7 @@ ensure extraction_loadscreen
 ensure extraction_core
 ensure extraction_chat
 ensure extraction_world
+ensure extraction_character
 ensure extraction_inventory
 ensure extraction_hud
 ensure extraction_lobby

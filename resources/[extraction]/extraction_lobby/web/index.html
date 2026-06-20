@@ -97,7 +97,7 @@
                 <strong id="loadoutMeta">Empty</strong>
               </div>
               <div class="kit-bars" aria-hidden="true"><span></span><span></span><span></span></div>
-              <button class="small-button" data-action="openInventory" type="button">View Team Loadouts</button>
+              <button class="small-button" data-view="loadout" type="button">View Team Loadouts</button>
             </div>
           </section>
 
@@ -144,10 +144,10 @@
                 <strong>Deploy Now</strong>
                 <em>Enter the live Los Santos open zone.</em>
               </button>
-              <button class="feature-card" data-action="openInventory" type="button">
+              <button class="feature-card" data-view="loadout" type="button">
                 <span>Preparation</span>
                 <strong>Loadout</strong>
-                <em>Review stash, weapons and starting kit.</em>
+                <em>Manage stash, weapons and starting kit inside the lobby.</em>
               </button>
               <button id="sellButton" class="feature-card" data-action="sellLoot" type="button">
                 <span>Economy</span>
@@ -160,11 +160,11 @@
           <section class="view-panel" data-panel="loadout">
             <div class="inventory-preview">
               <article class="panel">
-                <div class="panel-head"><p class="eyebrow">Stash Preview</p><span>Secured</span></div>
+                <div class="panel-head"><p class="eyebrow">Stash Inventory</p><span>Secured</span></div>
                 <div id="stashPreview" class="item-list"></div>
               </article>
               <article class="panel">
-                <div class="panel-head"><p class="eyebrow">Ready Kit</p><span>Raid</span></div>
+                <div class="panel-head"><p class="eyebrow">Ready Kit</p><span>Lobby Loadout</span></div>
                 <div id="loadoutPreview" class="item-list"></div>
               </article>
             </div>
@@ -237,7 +237,7 @@
         <footer class="footer-actions">
           <button data-action="close" type="button"><kbd>F</kbd> Cancel</button>
           <button data-action="refresh" type="button"><kbd>R</kbd> Refresh Intel</button>
-          <button data-action="openInventory" type="button"><kbd>V</kbd> View Loadout</button>
+          <button data-view="loadout" type="button"><kbd>V</kbd> View Loadout</button>
           <button data-coming-soon="Actions menu" type="button"><kbd>LShift</kbd> Actions Menu</button>
         </footer>
 

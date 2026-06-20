@@ -1,5 +1,7 @@
 local uiOpen = false
 local latestSnapshot
+local raidActive = false
+local closeUi
 
 local function getFallbackSnapshot()
     return {
@@ -31,6 +33,12 @@ local function sendSnapshot(snapshot, shouldOpen)
 end
 
 local function openUi()
+    if not raidActive then
+        closeUi()
+        TriggerEvent('extraction_lobby:client:open', 'loadout')
+        return
+    end
+
     if uiOpen then
         TriggerServerEvent('standalone_extraction:server:requestInventory', false)
         return
@@ -42,7 +50,7 @@ local function openUi()
     TriggerServerEvent('standalone_extraction:server:requestInventory', false)
 end
 
-local function closeUi()
+function closeUi()
     if not uiOpen then
         SetNuiFocus(false, false)
         SendNUIMessage({ action = 'close' })
@@ -67,18 +75,32 @@ RegisterKeyMapping('extractinv', 'Open extraction inventory', 'keyboard', 'I')
 
 RegisterNetEvent('standalone_extraction:client:openInventory', function(snapshot)
     latestSnapshot = snapshot or latestSnapshot
+
+    if latestSnapshot and latestSnapshot.raidActive ~= nil then
+        raidActive = latestSnapshot.raidActive == true
+    end
+
     openUi()
 end)
 
 RegisterNetEvent('standalone_extraction:client:updateInventory', function(snapshot)
     latestSnapshot = snapshot or latestSnapshot
 
+    if latestSnapshot and latestSnapshot.raidActive ~= nil then
+        raidActive = latestSnapshot.raidActive == true
+    end
+
     if uiOpen then
         sendSnapshot(latestSnapshot, false)
     end
 end)
 
+RegisterNetEvent('standalone_extraction:client:startRaid', function()
+    raidActive = true
+end)
+
 RegisterNetEvent('standalone_extraction:client:endRaid', function()
+    raidActive = false
     closeUi()
 end)
 
@@ -112,6 +134,7 @@ end)
 
 CreateThread(function()
     uiOpen = false
+    raidActive = false
     latestSnapshot = nil
     SetNuiFocus(false, false)
     SendNUIMessage({ action = 'close' })
