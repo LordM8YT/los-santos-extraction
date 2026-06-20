@@ -22,6 +22,11 @@ function updateRootVisibility() {
   document.documentElement.classList.toggle("hud-closed", !shouldShow);
 }
 
+function applySettings(settings = {}) {
+  document.documentElement.classList.toggle("hud-minimal", settings.hudDensity === "minimal");
+  document.documentElement.dataset.minimapMode = settings.minimapMode || "vehicle";
+}
+
 function setVisible(element, visible) {
   element.classList.toggle("hidden", !visible);
 }
@@ -83,6 +88,7 @@ window.addEventListener("message", (event) => {
     raidTimer.textContent = formatTime(payload.secondsLeft);
     bagValue.textContent = payload.carryValueText || "$0";
     bagWeight.textContent = payload.carryWeightText || "0 / 0";
+    applySettings({ hudDensity: payload.density });
     updateRootVisibility();
   }
 
@@ -108,5 +114,9 @@ window.addEventListener("message", (event) => {
 
   if (action === "profile") {
     showProfile(payload);
+  }
+
+  if (action === "settings") {
+    applySettings(payload);
   }
 });

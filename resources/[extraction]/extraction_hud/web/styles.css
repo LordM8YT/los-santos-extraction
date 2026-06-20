@@ -92,6 +92,14 @@ html.hud-closed body {
   font-size: 16px;
 }
 
+html.hud-minimal .raid-panel {
+  min-width: 300px;
+}
+
+html.hud-minimal .raid-stat {
+  display: none;
+}
+
 .progress-panel {
   position: absolute;
   left: 50%;

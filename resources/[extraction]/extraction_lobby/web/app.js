@@ -31,6 +31,10 @@ const toast = document.getElementById("toast");
 let currentSnapshot = null;
 let currentView = "deploy";
 let toastTimer = null;
+let currentSettings = {
+  minimapMode: "vehicle",
+  hudDensity: "full",
+};
 
 const viewMeta = {
   deploy: ["Safehouse Operations", "Deploy"],
@@ -52,7 +56,7 @@ const resourceName =
     : "extraction_lobby";
 
 function post(action, payload = {}) {
-  fetch(`https://${resourceName}/${action}`, {
+  return fetch(`https://${resourceName}/${action}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -121,6 +125,18 @@ function setView(view) {
   const [kicker, title] = viewMeta[currentView];
   setText(viewKicker, kicker);
   setText(viewTitle, title);
+}
+
+function renderSettings(settings = {}) {
+  currentSettings = {
+    ...currentSettings,
+    ...settings,
+  };
+
+  document.querySelectorAll("[data-setting-key]").forEach((button) => {
+    const key = button.dataset.settingKey;
+    button.classList.toggle("is-active", currentSettings[key] === button.dataset.settingValue);
+  });
 }
 
 function isLoadoutItem(entry) {
@@ -231,6 +247,7 @@ function open(payload = {}) {
   app.classList.add("is-open");
   app.setAttribute("aria-hidden", "false");
   setView(payload.view || currentView || "deploy");
+  renderSettings(payload.settings || currentSettings);
   render(payload.snapshot || currentSnapshot || fallbackSnapshot());
 }
 
@@ -257,12 +274,25 @@ window.addEventListener("message", (event) => {
     render(payload?.snapshot || currentSnapshot || fallbackSnapshot());
   }
 
+  if (action === "settings") {
+    renderSettings(payload || {});
+  }
+
   if (action === "close") {
     close();
   }
 });
 
 document.addEventListener("click", (event) => {
+  const settingButton = event.target?.closest("[data-setting-key]");
+  if (settingButton) {
+    const { settingKey: key, settingValue: value } = settingButton.dataset;
+    renderSettings({ [key]: value });
+    post("setSetting", { key, value });
+    showToast("Settings updated.");
+    return;
+  }
+
   const navButton = event.target?.closest("[data-view]");
   if (navButton) {
     setView(navButton.dataset.view);

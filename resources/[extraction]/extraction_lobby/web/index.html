@@ -75,7 +75,7 @@
               <em>Light kit / scout route</em>
             </div>
             <div class="operator-card operator-center">
-              <span class="crown">◆</span>
+              <span class="crown">LEAD</span>
               <strong id="profileTitle">Level 1 Contractor</strong>
               <em id="raidStatus">Safehouse ready</em>
             </div>
@@ -202,9 +202,34 @@
 
           <section class="view-panel" data-panel="settings">
             <div class="settings-grid">
-              <article class="setting-row"><div><strong>Minimal Minimap</strong><span>Radar only appears during raid traversal.</span></div><b>Enabled</b></article>
-              <article class="setting-row"><div><strong>HUD Theme</strong><span>Cinematic extraction interface.</span></div><b>Default</b></article>
-              <article class="setting-row muted"><div><strong>Audio / Controls</strong><span>Settings persistence will be added later.</span></div><b>Soon</b></article>
+              <article class="setting-row">
+                <div>
+                  <strong>Minimap Visibility</strong>
+                  <span>Choose how much native radar is allowed during raids.</span>
+                </div>
+                <div class="setting-options" data-setting-group="minimapMode">
+                  <button data-setting-key="minimapMode" data-setting-value="vehicle" type="button">Vehicle</button>
+                  <button data-setting-key="minimapMode" data-setting-value="always" type="button">Always</button>
+                  <button data-setting-key="minimapMode" data-setting-value="off" type="button">Off</button>
+                </div>
+              </article>
+              <article class="setting-row">
+                <div>
+                  <strong>Raid HUD Density</strong>
+                  <span>Full shows timer, value and weight. Minimal keeps only the timer.</span>
+                </div>
+                <div class="setting-options" data-setting-group="hudDensity">
+                  <button data-setting-key="hudDensity" data-setting-value="full" type="button">Full</button>
+                  <button data-setting-key="hudDensity" data-setting-value="minimal" type="button">Minimal</button>
+                </div>
+              </article>
+              <article class="setting-row muted">
+                <div>
+                  <strong>Audio / Controls</strong>
+                  <span>Reserved for keybind and volume persistence later.</span>
+                </div>
+                <b>Soon</b>
+              </article>
             </div>
           </section>
         </section>

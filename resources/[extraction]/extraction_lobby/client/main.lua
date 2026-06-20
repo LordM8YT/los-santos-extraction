@@ -1,5 +1,11 @@
 local uiOpen = false
 local latestSnapshot
+local settingsKvpKey = 'extraction_lobby:client_settings'
+
+local clientSettings = {
+    minimapMode = 'vehicle',
+    hudDensity = 'full',
+}
 
 local function fallbackSnapshot()
     return {
@@ -28,6 +34,45 @@ local function send(action, payload)
     })
 end
 
+local function loadSettings()
+    local encoded = GetResourceKvpString(settingsKvpKey)
+
+    if not encoded or encoded == '' then
+        return
+    end
+
+    local ok, decoded = pcall(json.decode, encoded)
+    if not ok or type(decoded) ~= 'table' then
+        return
+    end
+
+    clientSettings.minimapMode = decoded.minimapMode or clientSettings.minimapMode
+    clientSettings.hudDensity = decoded.hudDensity or clientSettings.hudDensity
+end
+
+local function saveSettings()
+    SetResourceKvp(settingsKvpKey, json.encode(clientSettings))
+end
+
+local function syncHudSettings()
+    TriggerEvent('extraction_hud:client:setSettings', clientSettings)
+end
+
+local function updateSetting(key, value)
+    if key == 'minimapMode' and (value == 'vehicle' or value == 'always' or value == 'off') then
+        clientSettings.minimapMode = value
+    elseif key == 'hudDensity' and (value == 'full' or value == 'minimal') then
+        clientSettings.hudDensity = value
+    else
+        return false
+    end
+
+    saveSettings()
+    syncHudSettings()
+    send('settings', clientSettings)
+    return true
+end
+
 local function requestSnapshot()
     TriggerServerEvent('standalone_extraction:server:requestLobbySnapshot')
 end
@@ -54,8 +99,10 @@ local function openUi(defaultView)
     send('open', {
         snapshot = latestSnapshot or fallbackSnapshot(),
         view = defaultView,
+        settings = clientSettings,
     })
     requestSnapshot()
+    syncHudSettings()
 end
 
 RegisterNetEvent('extraction_lobby:client:open', function(defaultView)
@@ -119,6 +166,11 @@ RegisterNUICallback('sellLoot', function(_, cb)
     cb({ ok = true })
 end)
 
+RegisterNUICallback('setSetting', function(data, cb)
+    local ok = updateSetting(data and data.key, data and data.value)
+    cb({ ok = ok, settings = clientSettings })
+end)
+
 AddEventHandler('onResourceStop', function(resourceName)
     if resourceName ~= GetCurrentResourceName() then
         return
@@ -128,5 +180,7 @@ AddEventHandler('onResourceStop', function(resourceName)
 end)
 
 CreateThread(function()
+    loadSettings()
+    syncHudSettings()
     closeUi()
 end)

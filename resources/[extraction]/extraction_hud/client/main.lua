@@ -21,6 +21,13 @@ local hudHiddenComponents = {
 }
 
 local nextMinimapEnforce = 0
+local send
+local settingsKvpKey = 'extraction_hud:client_settings'
+
+local hudSettings = {
+    minimapMode = 'vehicle',
+    hudDensity = 'full',
+}
 
 local raidState = {
     active = false,
@@ -30,6 +37,43 @@ local raidState = {
     maxCarryWeight = 0,
 }
 
+local function loadClientSettings()
+    local encoded = GetResourceKvpString(settingsKvpKey)
+
+    if not encoded or encoded == '' then
+        return
+    end
+
+    local ok, decoded = pcall(json.decode, encoded)
+    if not ok or type(decoded) ~= 'table' then
+        return
+    end
+
+    hudSettings.minimapMode = decoded.minimapMode or hudSettings.minimapMode
+    hudSettings.hudDensity = decoded.hudDensity or hudSettings.hudDensity
+end
+
+local function saveClientSettings()
+    SetResourceKvp(settingsKvpKey, json.encode(hudSettings))
+end
+
+local function applyClientSettings(settings)
+    if type(settings) ~= 'table' then
+        return
+    end
+
+    if settings.minimapMode == 'vehicle' or settings.minimapMode == 'always' or settings.minimapMode == 'off' then
+        hudSettings.minimapMode = settings.minimapMode
+    end
+
+    if settings.hudDensity == 'full' or settings.hudDensity == 'minimal' then
+        hudSettings.hudDensity = settings.hudDensity
+    end
+
+    saveClientSettings()
+    send('settings', hudSettings)
+end
+
 local function shouldShowRadar()
     local config = ExtractionHudConfig and ExtractionHudConfig.Minimap or {}
 
@@ -37,8 +81,16 @@ local function shouldShowRadar()
         return false
     end
 
+    if hudSettings.minimapMode == 'off' then
+        return false
+    end
+
     if config.showOnlyInRaid ~= false and not raidState.active then
         return false
+    end
+
+    if hudSettings.minimapMode == 'always' then
+        return true
     end
 
     if IsPedInAnyVehicle(PlayerPedId(), false) then
@@ -75,7 +127,7 @@ local function applyMinimapCleanup(showRadar)
     end
 end
 
-local function send(action, payload)
+function send(action, payload)
     SendNUIMessage({
         action = action,
         payload = payload or {}
@@ -102,8 +154,18 @@ local function updateRaidHud()
         maxCarryWeight = raidState.maxCarryWeight,
         carryValueText = ('$%s'):format(formatNumber(raidState.carryValue)),
         carryWeightText = ('%s / %s'):format(formatNumber(raidState.carryWeight), formatNumber(raidState.maxCarryWeight)),
+        density = hudSettings.hudDensity,
     })
 end
+
+RegisterNetEvent('extraction_hud:client:setSettings', function(settings)
+    applyClientSettings(settings)
+    updateRaidHud()
+end)
+
+RegisterNetEvent('extraction_hud:client:requestSettings', function()
+    send('settings', hudSettings)
+end)
 
 RegisterNetEvent('extraction_hud:client:notify', function(message, variant)
     send('notify', {
@@ -157,9 +219,11 @@ RegisterNetEvent('standalone_extraction:client:endRaid', function()
 end)
 
 CreateThread(function()
+    loadClientSettings()
     SetNuiFocus(false, false)
     SetNuiFocusKeepInput(false)
     send('boot', {})
+    send('settings', hudSettings)
 
     while true do
         for _, componentId in ipairs(hudHiddenComponents) do

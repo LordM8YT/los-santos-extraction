@@ -15,9 +15,9 @@ This folder contains a standalone FiveM extraction prototype. The current goal i
 - `extraction_inventory`
   Standalone NUI for stash, loadout, raid bag, item dropping, and selling secured loot.
 - `extraction_hud`
-  Custom extraction HUD, notifications, hints, progress display, raid timer, and vanilla HUD suppression.
+  Custom extraction HUD, notifications, hints, progress display, raid timer, client-side HUD/minimap preferences, and vanilla HUD suppression.
 - `extraction_lobby`
-  Safehouse lobby NUI for deploy, stash/loadout access, selling, and profile overview.
+  Cinematic safehouse lobby NUI for deploy, stash/loadout access, selling, profile overview, and client HUD settings.
 - `extraction_chat`
   Theme override for the default FiveM chat resource.
 
@@ -36,6 +36,7 @@ Third-party dependencies are kept outside this folder in `resources/[overextende
 - `extraction_core` now owns the future shared bucket allocator, but the current prototype still uses its existing raid flow until migrated.
 - Player data is stored in `standalone_extraction/data/players.json`.
 - Inventory is custom and standalone for now. `extraction_items` is the new shared registry for the future tetris inventory migration.
+- Lobby settings are currently client-side KVP preferences. `extraction_lobby` sends updates through `extraction_hud:client:setSettings`.
 - `ox_lib` is enabled. `oxmysql` and `ox_inventory` are downloaded into `resources/[overextended]` but intentionally not auto-started yet.
 - User-facing text and documentation should stay in English for easier external collaboration.
 - Internal item keys should remain stable because saved player data references them.

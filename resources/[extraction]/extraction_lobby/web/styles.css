@@ -436,6 +436,29 @@ dd { margin: 0; color: var(--paper); }
 .setting-row span { color: var(--muted); }
 .setting-row b { color: var(--green); text-transform: uppercase; letter-spacing: 0.08em; }
 .setting-row.muted b { color: var(--gold); }
+.setting-options {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.setting-options button {
+  min-width: 82px;
+  height: 34px;
+  border: 1px solid rgba(238, 225, 190, 0.18);
+  color: rgba(239, 231, 207, 0.74);
+  background: rgba(0, 0, 0, 0.28);
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.setting-options button:hover,
+.setting-options button.is-active {
+  border-color: var(--line-hot);
+  color: var(--paper);
+  background: rgba(212, 176, 106, 0.16);
+}
 
 .footer-actions {
   position: absolute;
