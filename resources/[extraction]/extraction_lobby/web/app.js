@@ -19,6 +19,8 @@ const profileCash = document.getElementById("profileCash");
 const raidStatus = document.getElementById("raidStatus");
 const stats = document.getElementById("stats");
 const sellButtons = [...document.querySelectorAll('[data-action="sellLoot"]')];
+const deployButton = document.getElementById("deployButton");
+const deployHint = document.getElementById("deployHint");
 const sellHint = document.getElementById("sellHint");
 const stashPreview = document.getElementById("stashPreview");
 const loadoutPreview = document.getElementById("loadoutPreview");
@@ -27,14 +29,37 @@ const loadoutMeta = document.getElementById("loadoutMeta");
 const viewKicker = document.getElementById("viewKicker");
 const viewTitle = document.getElementById("viewTitle");
 const toast = document.getElementById("toast");
+const readyKitState = document.getElementById("readyKitState");
+const entryFeeState = document.getElementById("entryFeeState");
+const raidAccessState = document.getElementById("raidAccessState");
+const bestRunMeta = document.getElementById("bestRunMeta");
+const survivalMeta = document.getElementById("survivalMeta");
+const targetProgress = document.getElementById("targetProgress");
+const extractProgress = document.getElementById("extractProgress");
+const recommendedAction = document.getElementById("recommendedAction");
+const medicalQuestText = document.getElementById("medicalQuestText");
+const medicalQuestBar = document.getElementById("medicalQuestBar");
+const intelQuestText = document.getElementById("intelQuestText");
+const intelQuestBar = document.getElementById("intelQuestBar");
+const weaponSlot = document.getElementById("weaponSlot");
+const ammoSlot = document.getElementById("ammoSlot");
+const gearSlot = document.getElementById("gearSlot");
+const kitSummary = document.getElementById("kitSummary");
+const carryEstimate = document.getElementById("carryEstimate");
+const deploymentRisk = document.getElementById("deploymentRisk");
 
 let currentSnapshot = null;
 let currentView = "deploy";
 let toastTimer = null;
+let deployLockTimer = null;
+let deployLocked = false;
 let currentSettings = {
   minimapMode: "vehicle",
   hudDensity: "full",
 };
+
+const XP_PER_LEVEL = 700;
+const NAV_SHORTCUTS = ["deploy", "party", "loadout", "quests", "trader", "settings"];
 
 const viewMeta = {
   deploy: ["Safehouse Operations", "Deploy"],
@@ -67,6 +92,10 @@ function post(action, payload = {}) {
 
 function formatNumber(value) {
   return new Intl.NumberFormat("en-US").format(Number(value || 0));
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
 }
 
 function escapeHtml(value) {
@@ -151,6 +180,18 @@ function itemValue(entry) {
   return `$${formatNumber(Number(entry.count || 0) * Number(entry.value || 0))}`;
 }
 
+function countItem(entries, itemName) {
+  return (entries || []).reduce((total, entry) => {
+    return total + (entry.name === itemName ? Number(entry.count || 0) : 0);
+  }, 0);
+}
+
+function setProgress(element, percent) {
+  if (element) {
+    element.style.width = `${clamp(percent, 0, 100)}%`;
+  }
+}
+
 function renderList(target, entries, emptyText) {
   if (!target) {
     return;
@@ -167,9 +208,10 @@ function renderList(target, entries, emptyText) {
       const count = formatNumber(entry.count);
       const weight = formatNumber(entry.weight);
       const type = escapeHtml(entry.type || "loot");
+      const rarity = entry.type === "weapon" ? "weapon" : entry.type === "ammo" ? "ammo" : "loot";
 
       return `
-        <div class="item">
+        <div class="item crate-item" data-rarity="${rarity}">
           <div>
             <strong>${escapeHtml(entry.label)}</strong>
             <span>${count}x / ${weight} wt each / ${type}</span>
@@ -179,6 +221,53 @@ function renderList(target, entries, emptyText) {
       `;
     })
     .join(""));
+}
+
+function renderGearSlot(slot, state) {
+  if (!slot) {
+    return;
+  }
+
+  slot.classList.toggle("is-equipped", Boolean(state.equipped));
+  slot.classList.toggle("is-empty", !state.equipped);
+  setHtml(slot, `
+    <span>${escapeHtml(state.kicker)}</span>
+    <strong>${escapeHtml(state.title)}</strong>
+    <em>${escapeHtml(state.subtitle)}</em>
+  `);
+}
+
+function renderLoadoutSlots(snapshot, loadout) {
+  const weapon = loadout.find((entry) => entry.type === "weapon");
+  const ammo = loadout.find((entry) => entry.type === "ammo");
+  const loadoutWeight = loadout.reduce((total, entry) => total + (Number(entry.count || 0) * Number(entry.weight || 0)), 0);
+  const stashWeight = (snapshot.stash || []).reduce((total, entry) => total + (Number(entry.count || 0) * Number(entry.weight || 0)), 0);
+  const risk = weapon && ammo ? "Prepared" : weapon ? "Ammo Low" : "Underequipped";
+
+  renderGearSlot(weaponSlot, {
+    equipped: Boolean(weapon),
+    kicker: "Primary",
+    title: weapon ? weapon.label : "No Weapon",
+    subtitle: weapon ? `${formatNumber(weapon.count)} stored` : "Assign weapon",
+  });
+
+  renderGearSlot(ammoSlot, {
+    equipped: Boolean(ammo),
+    kicker: "Ammo",
+    title: ammo ? ammo.label : "Empty",
+    subtitle: ammo ? `${formatNumber(ammo.count)} rounds` : "0 rounds",
+  });
+
+  renderGearSlot(gearSlot, {
+    equipped: true,
+    kicker: "Rig",
+    title: "Starter Harness",
+    subtitle: "Light carry / default",
+  });
+
+  setText(kitSummary, weapon && ammo ? "Raid Ready" : "Needs Review");
+  setText(carryEstimate, `${formatNumber(loadoutWeight)} wt kit / ${formatNumber(stashWeight)} wt stash`);
+  setText(deploymentRisk, risk);
 }
 
 function renderStats(snapshot) {
@@ -207,6 +296,41 @@ function renderStats(snapshot) {
     .join(""));
 }
 
+function renderReadiness(snapshot, sellableStash, loadout) {
+  const raids = Number(snapshot.raids || 0);
+  const extracts = Number(snapshot.extractions || 0);
+  const survivalRate = raids > 0 ? Math.round((extracts / raids) * 100) : 0;
+  const hasWeapon = loadout.some((entry) => entry.type === "weapon");
+  const hasAmmo = loadout.some((entry) => entry.type === "ammo" && Number(entry.count || 0) > 0);
+  const canDeploy = !snapshot.raidActive && !deployLocked;
+  const nextLevelXp = Math.max(0, (Number(snapshot.level || 1) * XP_PER_LEVEL) - Number(snapshot.xp || 0));
+  const medicalCount = countItem(snapshot.stash, "meds");
+  const intelCount = countItem(snapshot.stash, "intel");
+
+  setText(readyKitState, hasWeapon && hasAmmo ? "Armed" : hasWeapon ? "Needs ammo" : "Starter kit");
+  setText(entryFeeState, "$0");
+  setText(raidAccessState, snapshot.raidActive ? "In raid" : "Ready");
+  setText(bestRunMeta, `$${formatNumber(snapshot.bestRunValue)}`);
+  setText(survivalMeta, `${survivalRate}%`);
+  setText(targetProgress, `${Math.min(5, sellableStash.length)} / 5`);
+  setText(extractProgress, `${Math.min(3, extracts)} / 3`);
+  setText(recommendedAction, hasWeapon && hasAmmo ? `Deploy or sell ${formatNumber(sellableStash.length)} loot stacks` : "Check loadout before deploy");
+  setText(deployHint, snapshot.raidActive ? "You already have an active raid." : hasWeapon && hasAmmo ? "Kit verified. Enter the live Los Santos open zone." : "Starter kit available. Consider checking loadout first.");
+  setText(medicalQuestText, medicalCount > 0 ? `Medical supplies secured: ${formatNumber(medicalCount)} / 1.` : "Extract with any medical supplies. Progress is inferred from stash for now.");
+  setText(intelQuestText, intelCount > 0 ? `Intel secured: ${formatNumber(intelCount)} / 1.` : "Secure Intel from guarded crates to unlock future faction contacts.");
+
+  setProgress(medicalQuestBar, medicalCount > 0 ? 100 : 0);
+  setProgress(intelQuestBar, intelCount > 0 ? 100 : 0);
+
+  if (deployButton) {
+    deployButton.disabled = !canDeploy;
+  }
+
+  const currentLevelStart = (Number(snapshot.level || 1) - 1) * XP_PER_LEVEL;
+  const levelProgress = ((Number(snapshot.xp || 0) - currentLevelStart) / XP_PER_LEVEL) * 100;
+  setHtml(stats, `${stats?.innerHTML || ""}<div class="stat progress-stat"><span class="stat-label">Next Level</span><span class="stat-value">${formatNumber(nextLevelXp)} XP</span><i style="width:${clamp(levelProgress, 0, 100)}%"></i></div>`);
+}
+
 function render(snapshot) {
   snapshot = snapshot || fallbackSnapshot();
   currentSnapshot = snapshot;
@@ -226,6 +350,8 @@ function render(snapshot) {
   renderStats(snapshot);
   renderList(stashPreview, sellableStash, "No secured sellable loot yet");
   renderList(loadoutPreview, loadout, "No loadout items in stash");
+  renderLoadoutSlots(snapshot, loadout);
+  renderReadiness(snapshot, sellableStash, loadout);
 
   setText(stashMeta, `${formatNumber(totalStashItems)} items / $${formatNumber(snapshot.stashValue)}`);
   setText(loadoutMeta, loadout.length > 0 ? `${formatNumber(loadout.length)} item types` : "Empty");
@@ -236,7 +362,7 @@ function render(snapshot) {
   });
   setText(
     sellHint,
-    snapshot.canSell ? "Convert secured loot into cash." : "Use this from the trader terminal."
+    canSell ? "Convert secured loot into cash." : snapshot.canSell ? "No sellable loot secured." : "Use this from the trader terminal."
   );
 }
 
@@ -252,6 +378,7 @@ function open(payload = {}) {
 }
 
 function close() {
+  deployLocked = false;
   app.classList.remove("is-open");
   app.setAttribute("aria-hidden", "true");
   document.body.classList.remove("lobby-open");
@@ -311,12 +438,34 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  if (action === "startRaid") {
+    deployLocked = true;
+    if (deployButton) {
+      deployButton.disabled = true;
+    }
+    showToast("Deploying to raid...");
+    clearTimeout(deployLockTimer);
+    deployLockTimer = setTimeout(() => {
+      deployLocked = false;
+      render(currentSnapshot || fallbackSnapshot());
+    }, 4500);
+  } else if (action === "refresh") {
+    showToast("Refreshing safehouse intel...");
+  } else if (action === "sellLoot") {
+    showToast("Requesting trader sale...");
+  }
+
   post(action);
 });
 
 document.addEventListener("keyup", (event) => {
   if (event.key === "Escape") {
     post("close");
+  }
+
+  const shortcutIndex = Number(event.key) - 1;
+  if (shortcutIndex >= 0 && shortcutIndex < NAV_SHORTCUTS.length) {
+    setView(NAV_SHORTCUTS[shortcutIndex]);
   }
 });
 

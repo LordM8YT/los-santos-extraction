@@ -37,6 +37,7 @@
             <span><b>LVL</b><em id="operatorLevel">1 Contractor</em></span>
             <span><b>XP</b><em id="profileXp">0</em></span>
             <span><b>$</b><em id="profileCash">0</em></span>
+            <span class="status-pill"><b>NET</b><em id="networkStatus">Online</em></span>
             <button id="closeButton" class="icon-button" type="button">ESC</button>
           </div>
         </header>
@@ -50,8 +51,8 @@
                 <span></span>
               </div>
               <dl>
-                <div><dt>Raid Window</dt><dd>45 Minutes</dd></div>
-                <div><dt>Threat Level</dt><dd>Dynamic</dd></div>
+                <div><dt>Raid Window</dt><dd id="raidWindowMeta">25 Minutes</dd></div>
+                <div><dt>Threat Level</dt><dd id="threatMeta">Dynamic</dd></div>
                 <div><dt>Extraction</dt><dd>Required</dd></div>
               </dl>
             </article>
@@ -62,6 +63,15 @@
                 <button class="slot filled" data-view="loadout" type="button">You</button>
                 <button class="slot" data-view="party" type="button">+</button>
                 <button class="slot" data-view="party" type="button">+</button>
+              </div>
+            </article>
+
+            <article class="compact-panel readiness-card">
+              <p class="eyebrow">Ready Check</p>
+              <div class="readiness-list">
+                <div><span>Active Kit</span><strong id="readyKitState">Checking</strong></div>
+                <div><span>Entry Fee</span><strong id="entryFeeState">$0</strong></div>
+                <div><span>Raid Access</span><strong id="raidAccessState">Ready</strong></div>
               </div>
             </article>
 
@@ -97,7 +107,7 @@
                 <strong id="loadoutMeta">Empty</strong>
               </div>
               <div class="kit-bars" aria-hidden="true"><span></span><span></span><span></span></div>
-              <button class="small-button" data-view="loadout" type="button">View Team Loadouts</button>
+              <button class="small-button" data-view="loadout" type="button">Manage Loadout</button>
             </div>
           </section>
 
@@ -106,6 +116,10 @@
               <span class="event-badge">Live Intel</span>
               <h3>Scions of Los Santos</h3>
               <p>High-value crates are guarded. Extracted loot becomes stash value.</p>
+              <div class="intel-grid">
+                <div><span>Best Run</span><strong id="bestRunMeta">$0</strong></div>
+                <div><span>Survival</span><strong id="survivalMeta">0%</strong></div>
+              </div>
               <button class="small-button" data-view="quests" type="button">View Details</button>
             </article>
 
@@ -123,9 +137,9 @@
                 <span>12</span>
               </header>
               <div class="challenge-list">
-                <div><strong>Locate Targets</strong><em>1 / 5</em></div>
+                <div><strong>Locate Targets</strong><em id="targetProgress">1 / 5</em></div>
                 <div><strong>Extract Sellable Loot</strong><em id="stashMeta">0 items</em></div>
-                <div><strong>Win Firefights</strong><em>0 / 3</em></div>
+                <div><strong>Survive Raids</strong><em id="extractProgress">0 / 3</em></div>
               </div>
             </article>
           </aside>
@@ -139,10 +153,10 @@
 
           <section class="view-panel is-active" data-panel="deploy">
             <div class="action-grid">
-              <button class="feature-card primary" data-action="startRaid" type="button">
+              <button id="deployButton" class="feature-card primary" data-action="startRaid" type="button">
                 <span>Operation</span>
                 <strong>Deploy Now</strong>
-                <em>Enter the live Los Santos open zone.</em>
+                <em id="deployHint">Enter the live Los Santos open zone.</em>
               </button>
               <button class="feature-card" data-view="loadout" type="button">
                 <span>Preparation</span>
@@ -155,17 +169,59 @@
                 <em id="sellHint">Requires secured sellable loot.</em>
               </button>
             </div>
+            <div class="deployment-brief">
+              <div><span>Route Type</span><strong>Open City</strong></div>
+              <div><span>Extraction Network</span><strong id="extractNetworkState">City exits available</strong></div>
+              <div><span>Recommended</span><strong id="recommendedAction">Check loadout before deploy</strong></div>
+            </div>
           </section>
 
           <section class="view-panel" data-panel="loadout">
-            <div class="inventory-preview">
-              <article class="panel">
-                <div class="panel-head"><p class="eyebrow">Stash Inventory</p><span>Secured</span></div>
-                <div id="stashPreview" class="item-list"></div>
+            <div class="armory-layout">
+              <article class="operator-kit-panel">
+                <div class="panel-head"><p class="eyebrow">Operator Kit</p><span id="kitSummary">Unverified</span></div>
+                <div class="kit-silhouette" aria-hidden="true"><span></span></div>
+                <div class="equipment-slots">
+                  <button id="weaponSlot" class="gear-slot primary-slot" data-coming-soon="Tetris loadout editor" type="button">
+                    <span>Primary</span>
+                    <strong>No Weapon</strong>
+                    <em>Assign weapon</em>
+                  </button>
+                  <button id="ammoSlot" class="gear-slot" data-coming-soon="Tetris loadout editor" type="button">
+                    <span>Ammo</span>
+                    <strong>Empty</strong>
+                    <em>0 rounds</em>
+                  </button>
+                  <button id="gearSlot" class="gear-slot" data-coming-soon="Armor and backpack slots" type="button">
+                    <span>Rig</span>
+                    <strong>Starter Harness</strong>
+                    <em>Light carry</em>
+                  </button>
+                </div>
+                <div class="kit-readout">
+                  <div><span>Carry Estimate</span><strong id="carryEstimate">0 wt</strong></div>
+                  <div><span>Deployment Risk</span><strong id="deploymentRisk">Low</strong></div>
+                </div>
               </article>
-              <article class="panel">
-                <div class="panel-head"><p class="eyebrow">Ready Kit</p><span>Lobby Loadout</span></div>
-                <div id="loadoutPreview" class="item-list"></div>
+
+              <article class="stash-terminal">
+                <div class="panel-head"><p class="eyebrow">Safehouse Stash</p><span>Secured Inventory</span></div>
+                <div id="stashPreview" class="crate-grid"></div>
+                <div class="terminal-actions">
+                  <button class="small-button" data-action="sellLoot" type="button">Sell Loot</button>
+                  <button class="small-button" data-action="refresh" type="button">Refresh</button>
+                  <button class="small-button" data-view="trader" type="button">Store</button>
+                </div>
+              </article>
+
+              <article class="loadout-terminal">
+                <div class="panel-head"><p class="eyebrow">Stored Weapons</p><span>Loadout Pool</span></div>
+                <div id="loadoutPreview" class="crate-grid compact"></div>
+                <button class="feature-card locked" data-coming-soon="Drag and drop tetris inventory" type="button">
+                  <span>Future System</span>
+                  <strong>Tetris Inventory</strong>
+                  <em>Grid slots, stash upgrades and equipment presets will attach here.</em>
+                </button>
               </article>
             </div>
           </section>
@@ -187,15 +243,24 @@
 
           <section class="view-panel" data-panel="quests">
             <div class="mission-board">
-              <article class="mission-card active"><span>Prototype Task</span><strong>First Blood Sample</strong><p>Extract with any medical supplies. Quest tracking is not connected yet.</p></article>
-              <article class="mission-card"><span>Coming Soon</span><strong>Faction Contracts</strong><p>Multi-step tasks, reputation and vendor unlocks.</p></article>
-              <article class="mission-card"><span>Coming Soon</span><strong>Daily Operations</strong><p>Short session goals with cash and XP rewards.</p></article>
+              <article class="mission-card active"><span>Active Task</span><strong>First Blood Sample</strong><p id="medicalQuestText">Extract with any medical supplies. Progress is inferred from stash for now.</p><div class="progress-line"><i id="medicalQuestBar"></i></div></article>
+              <article class="mission-card"><span>Intel Chain</span><strong>Find The Signal</strong><p id="intelQuestText">Secure Intel from guarded crates to unlock future faction contacts.</p><div class="progress-line"><i id="intelQuestBar"></i></div></article>
+              <article class="mission-card"><span>Coming Soon</span><strong>Daily Operations</strong><p>Short session goals with cash and XP rewards.</p><button class="small-button" data-coming-soon="Daily quests" type="button">Preview</button></article>
             </div>
           </section>
 
           <section class="view-panel" data-panel="party">
             <div class="party-panel">
-              <div><p class="eyebrow">Squad Assembly</p><h3>Party System Placeholder</h3><p>Future flow: invite players, party leader, shared raid bucket and squad deploy.</p></div>
+              <div>
+                <p class="eyebrow">Squad Assembly</p>
+                <h3>Party System Staging</h3>
+                <p>Future flow: invite players, party leader, shared raid bucket and squad deploy. This screen is ready for that wiring.</p>
+                <div class="party-slots">
+                  <span class="is-filled">You</span>
+                  <span>Open Slot</span>
+                  <span>Open Slot</span>
+                </div>
+              </div>
               <button class="feature-card locked" data-coming-soon="Party system" type="button"><span>Coming Soon</span><strong>Create Party</strong><em>Waiting for shared raid bucket implementation.</em></button>
             </div>
           </section>
