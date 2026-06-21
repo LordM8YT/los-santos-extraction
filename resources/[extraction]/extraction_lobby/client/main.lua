@@ -167,6 +167,19 @@ RegisterNUICallback('sellLoot', function(_, cb)
     cb({ ok = true })
 end)
 
+RegisterNUICallback('claimQuest', function(data, cb)
+    if data and data.questId then
+        TriggerServerEvent('standalone_extraction:server:claimQuestReward', data.questId)
+
+        CreateThread(function()
+            Wait(350)
+            requestSnapshot()
+        end)
+    end
+
+    cb({ ok = true })
+end)
+
 RegisterNUICallback('setSetting', function(data, cb)
     local ok = updateSetting(data and data.key, data and data.value)
     cb({ ok = ok, settings = clientSettings })

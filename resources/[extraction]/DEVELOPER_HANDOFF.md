@@ -49,6 +49,8 @@ Admin tooling is kept outside this folder in `resources/[admin]`:
 - `extraction_core` now owns the future shared bucket allocator, but the current prototype still uses its existing raid flow until migrated.
 - Player data is stored in `standalone_extraction/data/players.json`.
 - Inventory is custom and standalone for now. `extraction_items` is the new shared registry for the future tetris inventory migration.
+- Inventory UI now renders a visual tetris/grid layout in both the lobby armory and raid inventory. Item placement is still derived client-side from item dimensions/count snapshots; server-authoritative drag/drop placement is not implemented yet.
+- Quest rewards are currently handled in `standalone_extraction` as a small profile-backed prototype. Claimed quest IDs are stored on the player profile in `questClaims`.
 - Safehouse inventory is integrated into `extraction_lobby`. `extraction_inventory` is the separate field inventory used while in raid.
 - Initial join uses lobby staging: the player ped is hidden/frozen behind the lobby UI and should not become playable until raid start.
 - Lobby settings are currently client-side KVP preferences. `extraction_lobby` sends updates through `extraction_hud:client:setSettings`.

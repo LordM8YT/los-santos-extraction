@@ -618,19 +618,27 @@ dd { margin: 0; color: var(--paper); }
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(var(--grid-cols, 8), minmax(34px, 1fr));
+  grid-auto-rows: 34px;
+  grid-auto-flow: dense;
+  gap: 6px;
   max-height: 150px;
   overflow-y: auto;
   padding-right: 3px;
+  background:
+    linear-gradient(rgba(238, 225, 190, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(238, 225, 190, 0.06) 1px, transparent 1px);
+  background-size: calc(100% / var(--grid-cols, 8)) 34px;
 }
 .crate-grid.compact {
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(var(--grid-cols, 6), minmax(34px, 1fr));
   max-height: 96px;
   margin-bottom: 8px;
 }
 .crate-item {
   position: relative;
+  grid-column: span var(--item-w, 1);
+  grid-row: span var(--item-h, 1);
   min-height: 62px;
   padding-left: 13px;
   border-color: rgba(238, 225, 190, 0.13);
@@ -638,6 +646,31 @@ dd { margin: 0; color: var(--paper); }
     linear-gradient(90deg, rgba(241, 207, 130, 0.12), transparent 2px),
     linear-gradient(135deg, rgba(238, 225, 190, 0.055), rgba(0, 0, 0, 0.22));
   clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%);
+}
+.tetris-item {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  align-items: start;
+  min-height: 0;
+  height: 100%;
+  padding: 8px;
+  gap: 6px;
+}
+.tetris-item .item-value {
+  grid-column: 1 / -1;
+  align-self: end;
+  font-size: 12px;
+}
+.item-icon {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid rgba(238, 225, 190, 0.18);
+  color: var(--gold);
+  background: rgba(0, 0, 0, 0.42);
+  font-weight: 900;
 }
 .crate-item::before {
   content: "";
@@ -677,9 +710,19 @@ dd { margin: 0; color: var(--paper); }
 .mission-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .mission-card { padding: 13px; min-height: 112px; }
 .mission-card.active { border-color: var(--line-hot); background: rgba(212, 176, 106, 0.09); }
+.mission-card.is-claimable {
+  border-color: rgba(152, 200, 143, 0.7);
+  background: linear-gradient(180deg, rgba(152, 200, 143, 0.13), rgba(5, 6, 5, 0.7));
+}
+.mission-card.is-claimed {
+  opacity: 0.72;
+}
 .mission-card span { color: var(--gold); font-size: 11px; font-weight: 900; letter-spacing: 0.11em; text-transform: uppercase; }
 .mission-card strong { display: block; margin-top: 8px; font-size: 21px; }
 .mission-card p { margin: 7px 0 0; color: #bdb295; line-height: 1.25; }
+.claim-button {
+  margin-top: 12px;
+}
 .progress-line {
   position: relative;
   height: 6px;

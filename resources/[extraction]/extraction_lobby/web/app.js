@@ -39,8 +39,10 @@ const extractProgress = document.getElementById("extractProgress");
 const recommendedAction = document.getElementById("recommendedAction");
 const medicalQuestText = document.getElementById("medicalQuestText");
 const medicalQuestBar = document.getElementById("medicalQuestBar");
+const medicalQuestState = document.getElementById("medicalQuestState");
 const intelQuestText = document.getElementById("intelQuestText");
 const intelQuestBar = document.getElementById("intelQuestBar");
+const intelQuestState = document.getElementById("intelQuestState");
 const weaponSlot = document.getElementById("weaponSlot");
 const ammoSlot = document.getElementById("ammoSlot");
 const gearSlot = document.getElementById("gearSlot");
@@ -180,10 +182,32 @@ function itemValue(entry) {
   return `$${formatNumber(Number(entry.count || 0) * Number(entry.value || 0))}`;
 }
 
+function getQuest(snapshot, questId) {
+  return (snapshot.quests || []).find((quest) => quest.id === questId);
+}
+
 function countItem(entries, itemName) {
   return (entries || []).reduce((total, entry) => {
     return total + (entry.name === itemName ? Number(entry.count || 0) : 0);
   }, 0);
+}
+
+function rewardText(rewards = {}) {
+  const parts = [];
+
+  if (rewards.cash) {
+    parts.push(`$${formatNumber(rewards.cash)}`);
+  }
+
+  if (rewards.xp) {
+    parts.push(`${formatNumber(rewards.xp)} XP`);
+  }
+
+  Object.entries(rewards.items || {}).forEach(([itemName, count]) => {
+    parts.push(`${formatNumber(count)}x ${itemName.replaceAll("_", " ")}`);
+  });
+
+  return parts.length > 0 ? parts.join(" / ") : "No reward";
 }
 
 function setProgress(element, percent) {
@@ -192,10 +216,16 @@ function setProgress(element, percent) {
   }
 }
 
-function renderList(target, entries, emptyText) {
+function renderList(target, entries, emptyText, container = {}) {
   if (!target) {
     return;
   }
+
+  const columns = Number(container.width || 8);
+  const rows = Number(container.height || 8);
+  target.style.setProperty("--grid-cols", columns);
+  target.style.setProperty("--grid-rows", rows);
+  target.classList.add("tetris-grid");
 
   if (!entries || entries.length === 0) {
     setHtml(target, `<div class="empty">${escapeHtml(emptyText)}</div>`);
@@ -211,16 +241,45 @@ function renderList(target, entries, emptyText) {
       const rarity = entry.type === "weapon" ? "weapon" : entry.type === "ammo" ? "ammo" : "loot";
 
       return `
-        <div class="item crate-item" data-rarity="${rarity}">
+        <div class="item crate-item tetris-item" data-rarity="${rarity}" style="--item-w:${Number(entry.width || 1)}; --item-h:${Number(entry.height || 1)};">
+          <div class="item-icon">${escapeHtml(type.slice(0, 1).toUpperCase())}</div>
           <div>
             <strong>${escapeHtml(entry.label)}</strong>
-            <span>${count}x / ${weight} wt each / ${type}</span>
+            <span>${count}x / ${weight} wt each / ${Number(entry.width || 1)}x${Number(entry.height || 1)} / ${type}</span>
           </div>
           <div class="item-value">${itemValue(entry)}</div>
         </div>
       `;
     })
     .join(""));
+}
+
+function renderQuest(snapshot, questId, elements) {
+  const quest = getQuest(snapshot, questId);
+  if (!quest) {
+    return;
+  }
+
+  const progress = Number(quest.progress || 0);
+  const required = Number(quest.required || 1);
+  const percent = required > 0 ? (progress / required) * 100 : 0;
+  const state = quest.claimed ? "Claimed" : quest.ready ? "Ready To Claim" : "In Progress";
+  const button = document.querySelector(`[data-action="claimQuest"][data-quest-id="${questId}"]`);
+  const card = document.querySelector(`[data-quest-card="${questId}"]`);
+
+  setText(elements.state, state);
+  setText(elements.text, `${quest.description} Progress: ${formatNumber(progress)} / ${formatNumber(required)}. Reward: ${rewardText(quest.rewards)}.`);
+  setProgress(elements.bar, percent);
+
+  if (button) {
+    button.disabled = !quest.ready || quest.claimed;
+    button.textContent = quest.claimed ? "Claimed" : quest.ready ? "Claim Reward" : "Locked";
+  }
+
+  if (card) {
+    card.classList.toggle("is-claimable", Boolean(quest.ready));
+    card.classList.toggle("is-claimed", Boolean(quest.claimed));
+  }
 }
 
 function renderGearSlot(slot, state) {
@@ -304,8 +363,8 @@ function renderReadiness(snapshot, sellableStash, loadout) {
   const hasAmmo = loadout.some((entry) => entry.type === "ammo" && Number(entry.count || 0) > 0);
   const canDeploy = !snapshot.raidActive && !deployLocked;
   const nextLevelXp = Math.max(0, (Number(snapshot.level || 1) * XP_PER_LEVEL) - Number(snapshot.xp || 0));
-  const medicalCount = countItem(snapshot.stash, "meds");
-  const intelCount = countItem(snapshot.stash, "intel");
+  const medicalQuest = getQuest(snapshot, "first_blood_sample");
+  const intelQuest = getQuest(snapshot, "find_the_signal");
 
   setText(readyKitState, hasWeapon && hasAmmo ? "Armed" : hasWeapon ? "Needs ammo" : "Starter kit");
   setText(entryFeeState, "$0");
@@ -316,11 +375,21 @@ function renderReadiness(snapshot, sellableStash, loadout) {
   setText(extractProgress, `${Math.min(3, extracts)} / 3`);
   setText(recommendedAction, hasWeapon && hasAmmo ? `Deploy or sell ${formatNumber(sellableStash.length)} loot stacks` : "Check loadout before deploy");
   setText(deployHint, snapshot.raidActive ? "You already have an active raid." : hasWeapon && hasAmmo ? "Kit verified. Enter the live Los Santos open zone." : "Starter kit available. Consider checking loadout first.");
-  setText(medicalQuestText, medicalCount > 0 ? `Medical supplies secured: ${formatNumber(medicalCount)} / 1.` : "Extract with any medical supplies. Progress is inferred from stash for now.");
-  setText(intelQuestText, intelCount > 0 ? `Intel secured: ${formatNumber(intelCount)} / 1.` : "Secure Intel from guarded crates to unlock future faction contacts.");
+  if (medicalQuest) {
+    renderQuest(snapshot, "first_blood_sample", {
+      state: medicalQuestState,
+      text: medicalQuestText,
+      bar: medicalQuestBar,
+    });
+  }
 
-  setProgress(medicalQuestBar, medicalCount > 0 ? 100 : 0);
-  setProgress(intelQuestBar, intelCount > 0 ? 100 : 0);
+  if (intelQuest) {
+    renderQuest(snapshot, "find_the_signal", {
+      state: intelQuestState,
+      text: intelQuestText,
+      bar: intelQuestBar,
+    });
+  }
 
   if (deployButton) {
     deployButton.disabled = !canDeploy;
@@ -348,8 +417,8 @@ function render(snapshot) {
   setText(raidStatus, snapshot.raidActive ? "Safehouse ready / raid active" : "Safehouse ready");
 
   renderStats(snapshot);
-  renderList(stashPreview, sellableStash, "No secured sellable loot yet");
-  renderList(loadoutPreview, loadout, "No loadout items in stash");
+  renderList(stashPreview, sellableStash, "No secured sellable loot yet", snapshot.containers?.stash);
+  renderList(loadoutPreview, loadout, "No loadout items in stash", snapshot.containers?.loadout);
   renderLoadoutSlots(snapshot, loadout);
   renderReadiness(snapshot, sellableStash, loadout);
 
@@ -435,6 +504,13 @@ document.addEventListener("click", (event) => {
   const action = event.target?.closest("[data-action]")?.dataset?.action;
 
   if (!action) {
+    return;
+  }
+
+  if (action === "claimQuest") {
+    const questId = event.target?.closest("[data-quest-id]")?.dataset?.questId;
+    showToast("Claiming quest reward...");
+    post("claimQuest", { questId });
     return;
   }
 

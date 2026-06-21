@@ -8,6 +8,7 @@ description 'Standalone extraction gameplay loop for FiveM with no framework dep
 version '1.0.0'
 
 dependencies {
+    'extraction_items',
     'extraction_world',
     'extraction_inventory',
     'extraction_hud'

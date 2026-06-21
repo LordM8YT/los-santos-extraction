@@ -71,10 +71,13 @@ function showUi(snapshot) {
   render(snapshot);
 }
 
-function renderList(target, entries, { allowDrop = false } = {}) {
+function renderList(target, entries, { allowDrop = false, container = {} } = {}) {
   if (!target) {
     return;
   }
+
+  target.style.setProperty("--grid-cols", Number(container.width || 6));
+  target.style.setProperty("--grid-rows", Number(container.height || 6));
 
   if (!entries || entries.length === 0) {
     setHtml(target, `<div class="empty">No items available</div>`);
@@ -88,15 +91,17 @@ function renderList(target, entries, { allowDrop = false } = {}) {
         type === "weapon" || type === "ammo"
           ? "Loadout"
           : `$${formatNumber(entry.count * entry.value)}`;
+      const rarity = type === "weapon" ? "weapon" : type === "ammo" ? "ammo" : "loot";
       const button = allowDrop
         ? `<button class="danger" data-action="drop" data-item="${escapeHtml(entry.name)}">Drop 1</button>`
         : "";
 
       return `
-        <div class="item item-${type}">
+        <div class="item item-${type} tetris-item" data-rarity="${rarity}" style="--item-w:${Number(entry.width || 1)}; --item-h:${Number(entry.height || 1)};">
+          <div class="item-icon">${escapeHtml(type.slice(0, 1).toUpperCase())}</div>
           <div class="item-main">
             <strong>${escapeHtml(entry.label)}</strong>
-            <span>${formatNumber(entry.count)}x | ${formatNumber(entry.weight)} wt each | ${escapeHtml(type)}</span>
+            <span>${formatNumber(entry.count)}x | ${formatNumber(entry.weight)} wt each | ${Number(entry.width || 1)}x${Number(entry.height || 1)} | ${escapeHtml(type)}</span>
           </div>
           <div class="item-value">${value}</div>
           ${button}
@@ -123,8 +128,11 @@ function render(snapshot) {
   const loadoutEntries = (snapshot.stash || []).filter(isLoadoutItem);
   const secondaryEntries = snapshot.raidActive ? snapshot.carry : loadoutEntries;
 
-  renderList(stashList, stashEntries);
-  renderList(bagList, secondaryEntries, { allowDrop: snapshot.raidActive });
+  renderList(stashList, stashEntries, { container: snapshot.containers?.stash });
+  renderList(bagList, secondaryEntries, {
+    allowDrop: snapshot.raidActive,
+    container: snapshot.raidActive ? snapshot.containers?.raidBag : snapshot.containers?.loadout,
+  });
 
   setText(secondaryKicker, snapshot.raidActive ? "On Character" : "Raid Ready");
   setText(secondaryTitle, snapshot.raidActive ? "Raid Bag" : "Loadout");

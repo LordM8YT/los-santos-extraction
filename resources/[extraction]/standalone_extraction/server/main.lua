@@ -8,6 +8,38 @@ local nextRaidId = 1
 local extractionById = {}
 local isPlayerNear
 
+local QUEST_DEFINITIONS = {
+    {
+        id = 'first_blood_sample',
+        title = 'First Blood Sample',
+        description = 'Secure medical supplies and deliver them to the safehouse.',
+        requiredItem = 'meds',
+        requiredCount = 1,
+        rewards = {
+            cash = 750,
+            xp = 150,
+            items = {
+                pistol_ammo = 24,
+            }
+        }
+    },
+    {
+        id = 'find_the_signal',
+        title = 'Find The Signal',
+        description = 'Extract Intel from the city and start building faction trust.',
+        requiredItem = 'intel',
+        requiredCount = 1,
+        rewards = {
+            cash = 1200,
+            xp = 260,
+            items = {
+                meds = 1,
+                weapon_parts = 1,
+            }
+        }
+    }
+}
+
 local function asVec3(coords)
     return vec3(coords.x, coords.y, coords.z)
 end
@@ -42,6 +74,7 @@ local function defaultProfile()
         bestRunValue = 0,
         starterKitGranted = false,
         starterKitVersion = 0,
+        questClaims = {},
         stash = newLootBag(),
     }
 end
@@ -97,6 +130,7 @@ local function ensureProfileShape(profile)
     profile.deaths = tonumber(profile.deaths) or 0
     profile.bestRunValue = tonumber(profile.bestRunValue) or 0
     profile.starterKitVersion = tonumber(profile.starterKitVersion) or 0
+    profile.questClaims = type(profile.questClaims) == 'table' and profile.questClaims or {}
     profile.stash = type(profile.stash) == 'table' and profile.stash or {}
 
     for itemName in pairs(Config.Items) do
@@ -104,6 +138,41 @@ local function ensureProfileShape(profile)
     end
 
     return grantStarterKit(profile)
+end
+
+local function getItemMetadata(itemName)
+    local configItem = Config.Items[itemName] or {}
+    local registryItem
+
+    if GetResourceState('extraction_items') == 'started' then
+        registryItem = exports.extraction_items:GetItem(itemName)
+    end
+
+    registryItem = type(registryItem) == 'table' and registryItem or {}
+
+    return {
+        width = tonumber(registryItem.width or configItem.width) or 1,
+        height = tonumber(registryItem.height or configItem.height) or 1,
+        stackSize = tonumber(registryItem.stackSize or configItem.stackSize) or 99,
+        image = registryItem.image or configItem.image,
+    }
+end
+
+local function getContainerTemplate(templateId, fallback)
+    local template
+
+    if GetResourceState('extraction_items') == 'started' then
+        template = exports.extraction_items:GetContainerTemplate(templateId)
+    end
+
+    template = type(template) == 'table' and template or {}
+
+    return {
+        id = templateId,
+        label = template.label or fallback.label,
+        width = tonumber(template.width or fallback.width) or fallback.width,
+        height = tonumber(template.height or fallback.height) or fallback.height,
+    }
 end
 
 local function loadProfiles()
@@ -194,6 +263,8 @@ local function buildLootList(loot)
     for itemName, itemData in pairs(Config.Items) do
         local count = tonumber(loot[itemName]) or 0
         if count > 0 then
+            local metadata = getItemMetadata(itemName)
+
             entries[#entries + 1] = {
                 name = itemName,
                 label = itemData.label,
@@ -201,6 +272,10 @@ local function buildLootList(loot)
                 count = count,
                 value = itemData.value,
                 weight = itemData.weight,
+                width = metadata.width,
+                height = metadata.height,
+                stackSize = metadata.stackSize,
+                image = metadata.image,
             }
         end
     end
@@ -214,6 +289,39 @@ end
 
 local function getLevelFromXp(xp)
     return math.floor((xp or 0) / Config.Progression.xpPerLevel) + 1
+end
+
+local function buildQuestSnapshots(profile)
+    local quests = {}
+
+    for _, quest in ipairs(QUEST_DEFINITIONS) do
+        local current = tonumber(profile.stash[quest.requiredItem]) or 0
+        local required = tonumber(quest.requiredCount) or 1
+        local claimed = profile.questClaims[quest.id] == true
+
+        quests[#quests + 1] = {
+            id = quest.id,
+            title = quest.title,
+            description = quest.description,
+            progress = math.min(current, required),
+            required = required,
+            ready = current >= required and not claimed,
+            claimed = claimed,
+            rewards = quest.rewards,
+        }
+    end
+
+    return quests
+end
+
+local function getQuestDefinition(questId)
+    for _, quest in ipairs(QUEST_DEFINITIONS) do
+        if quest.id == questId then
+            return quest
+        end
+    end
+
+    return nil
 end
 
 local function buildProfileSnapshot(source)
@@ -240,6 +348,12 @@ local function buildProfileSnapshot(source)
         carryValue = getLootValue(carryLoot),
         carryWeight = getLootWeight(carryLoot),
         maxCarryWeight = Config.Raid.maxCarryWeight,
+        quests = buildQuestSnapshots(profile),
+        containers = {
+            stash = getContainerTemplate('stash_basic', { label = 'Basic Stash', width = 10, height = 20 }),
+            raidBag = getContainerTemplate('raid_bag_basic', { label = 'Field Bag', width = 5, height = 6 }),
+            loadout = getContainerTemplate('loadout', { label = 'Loadout', width = 6, height = 4 }),
+        },
         raidActive = raid ~= nil,
         canSell = sellDistance and raid == nil,
     }
@@ -571,6 +685,56 @@ RegisterNetEvent('standalone_extraction:server:sellSecuredLoot', function()
 
     notify(source, ('You sold secured loot for $%s.'):format(stashValue))
     TriggerClientEvent('standalone_extraction:client:showProfile', source, buildProfileSnapshot(source))
+    sendInventorySnapshot(source, false)
+end)
+
+RegisterNetEvent('standalone_extraction:server:claimQuestReward', function(questId)
+    local source = source
+
+    if getRaid(source) then
+        notify(source, 'Claim rewards from the safehouse after extraction.')
+        return
+    end
+
+    local quest = getQuestDefinition(questId)
+    if not quest then
+        return
+    end
+
+    local profile = getProfile(source)
+    if not profile then
+        return
+    end
+
+    if profile.questClaims[quest.id] then
+        notify(source, 'Quest reward already claimed.')
+        TriggerClientEvent('extraction_lobby:client:update', source, buildProfileSnapshot(source))
+        return
+    end
+
+    local current = tonumber(profile.stash[quest.requiredItem]) or 0
+    local required = tonumber(quest.requiredCount) or 1
+    if current < required then
+        notify(source, 'Quest objective is not complete yet.')
+        TriggerClientEvent('extraction_lobby:client:update', source, buildProfileSnapshot(source))
+        return
+    end
+
+    local rewards = quest.rewards or {}
+    profile.cash = profile.cash + (tonumber(rewards.cash) or 0)
+    profile.xp = profile.xp + (tonumber(rewards.xp) or 0)
+
+    for itemName, count in pairs(rewards.items or {}) do
+        if Config.Items[itemName] then
+            profile.stash[itemName] = (tonumber(profile.stash[itemName]) or 0) + (tonumber(count) or 0)
+        end
+    end
+
+    profile.questClaims[quest.id] = true
+    saveProfiles()
+
+    notify(source, ('Claimed quest reward: %s.'):format(quest.title))
+    TriggerClientEvent('extraction_lobby:client:update', source, buildProfileSnapshot(source))
     sendInventorySnapshot(source, false)
 end)
 
