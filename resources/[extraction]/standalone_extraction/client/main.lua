@@ -181,12 +181,42 @@ local function setLobbyStaging(enabled)
     SetEntityInvincible(ped, enabled)
     SetEntityVisible(ped, not enabled, false)
     SetEntityCollision(ped, not enabled, not enabled)
+    SetPedCanSwitchWeapon(ped, not enabled)
     SetPlayerControl(PlayerId(), not enabled, 0)
 
     if enabled then
         ClearPedTasksImmediately(ped)
         SetCurrentPedWeapon(ped, joaat('WEAPON_UNARMED'), true)
     end
+end
+
+local function enforceLobbySafety()
+    local ped = PlayerPedId()
+    if not DoesEntityExist(ped) then
+        return
+    end
+
+    SetEntityInvincible(ped, true)
+    SetPlayerInvincible(PlayerId(), true)
+    DisablePlayerFiring(PlayerId(), true)
+    SetPedCanSwitchWeapon(ped, false)
+    SetCurrentPedWeapon(ped, joaat('WEAPON_UNARMED'), true)
+
+    DisableControlAction(0, 24, true) -- Attack
+    DisableControlAction(0, 25, true) -- Aim
+    DisableControlAction(0, 37, true) -- Weapon wheel
+    DisableControlAction(0, 45, true) -- Reload
+    DisableControlAction(0, 58, true) -- Alternate weapon
+    DisableControlAction(0, 69, true) -- Vehicle attack
+    DisableControlAction(0, 70, true) -- Vehicle attack 2
+    DisableControlAction(0, 92, true) -- Vehicle passenger attack
+    DisableControlAction(0, 114, true) -- Vehicle fly attack
+    DisableControlAction(0, 140, true) -- Melee light
+    DisableControlAction(0, 141, true) -- Melee heavy
+    DisableControlAction(0, 142, true) -- Melee alternate
+    DisableControlAction(0, 257, true) -- Attack 2
+    DisableControlAction(0, 263, true) -- Melee attack 1
+    DisableControlAction(0, 264, true) -- Melee attack 2
 end
 
 local function drawMarkerAt(coords, color, scaleMultiplier)
@@ -504,24 +534,7 @@ local function isLootBlipShortRange(tier)
 end
 
 local function createLootBlips()
-    if not Config.EnableBlips or not Config.EnableLootBlips then
-        return
-    end
-
-    for _, spot in ipairs(lootSpots) do
-        if not raidState.lootedSpots[spot.id] and not lootBlips[spot.id] then
-            local coords = asVec3(spot.coords)
-            local blip = AddBlipForCoord(coords.x, coords.y, coords.z)
-            SetBlipSprite(blip, 478)
-            SetBlipScale(blip, getLootBlipScale(spot.tier))
-            SetBlipColour(blip, getLootBlipColour(spot.tier))
-            SetBlipAsShortRange(blip, isLootBlipShortRange(spot.tier))
-            BeginTextCommandSetBlipName('STRING')
-            AddTextComponentSubstringPlayerName(('%s cache: %s'):format(spot.tier or 'loot', spot.label))
-            EndTextCommandSetBlipName(blip)
-            lootBlips[spot.id] = blip
-        end
-    end
+    -- Hardcore rule: loot is never exposed on map/minimap. Physical props are the discovery layer.
 end
 
 local function removeLootBlip(spotId)
@@ -747,7 +760,6 @@ RegisterNetEvent('standalone_extraction:client:startRaid', function(payload)
 
     setLobbyStaging(false)
     createExtractionBlips()
-    createLootBlips()
     CreateThread(spawnRaidVehicles)
     teleportTo(payload.spawn)
     applyRaidLoadout(payload.loadout)
@@ -865,6 +877,23 @@ end)
 
 CreateThread(function()
     while true do
+        if raidState.active then
+            local ped = PlayerPedId()
+            if DoesEntityExist(ped) then
+                SetPedCanSwitchWeapon(ped, true)
+            end
+
+            SetPlayerInvincible(PlayerId(), false)
+            Wait(1000)
+        else
+            enforceLobbySafety()
+            Wait(0)
+        end
+    end
+end)
+
+CreateThread(function()
+    while true do
         if summaryPanel.visibleUntil > GetGameTimer() then
             local x = 0.78
             local y = 0.18
@@ -923,18 +952,17 @@ CreateThread(function()
                     if not raidState.lootedSpots[spot.id] then
                         local distance = getDistance(playerCoords, spot.coords)
 
-                        if distance < Config.DrawDistance then
-                            sleep = 0
-                            drawMarkerAt(spot.coords, spot.color, 1.0)
+                        if distance < 12.0 then
+                            sleep = 150
+                        end
 
-                            if distance < Config.InteractDistance and (not nearestAction or distance < nearestAction.distance) then
-                                nearestAction = {
-                                    distance = distance,
-                                    label = ('[E] Search %s'):format(spot.label),
-                                    action = 'loot',
-                                    id = spot.id
-                                }
-                            end
+                        if distance < Config.InteractDistance and (not nearestAction or distance < nearestAction.distance) then
+                            nearestAction = {
+                                distance = distance,
+                                label = ('[E] Search %s'):format(spot.label),
+                                action = 'loot',
+                                id = spot.id
+                            }
                         end
                     end
                 end
@@ -962,18 +990,17 @@ CreateThread(function()
                 for _, drop in ipairs(raidState.deathDrops or {}) do
                     local distance = getDistance(playerCoords, drop.coords)
 
-                    if distance < Config.DrawDistance then
-                        sleep = 0
-                        drawMarkerAt(drop.coords, { r = 220, g = 70, b = 45, a = 155 }, 0.95)
+                    if distance < 12.0 then
+                        sleep = 150
+                    end
 
-                        if distance < Config.InteractDistance and (not nearestAction or distance < nearestAction.distance) then
-                            nearestAction = {
-                                distance = distance,
-                                label = ('[E] Recover death drop ($%s)'):format(formatNumber(drop.value)),
-                                action = 'deathdrop',
-                                id = drop.id,
-                            }
-                        end
+                    if distance < Config.InteractDistance and (not nearestAction or distance < nearestAction.distance) then
+                        nearestAction = {
+                            distance = distance,
+                            label = ('[E] Recover death drop ($%s)'):format(formatNumber(drop.value)),
+                            action = 'deathdrop',
+                            id = drop.id,
+                        }
                     end
                 end
             elseif Config.Lobby.worldActionsEnabled then

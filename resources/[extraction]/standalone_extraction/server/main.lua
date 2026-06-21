@@ -75,6 +75,7 @@ local function defaultProfile()
         raids = 0,
         extractions = 0,
         deaths = 0,
+        mia = 0,
         bestRunValue = 0,
         starterKitGranted = false,
         starterKitVersion = 0,
@@ -132,6 +133,7 @@ local function ensureProfileShape(profile)
     profile.raids = tonumber(profile.raids) or 0
     profile.extractions = tonumber(profile.extractions) or 0
     profile.deaths = tonumber(profile.deaths) or 0
+    profile.mia = tonumber(profile.mia) or 0
     profile.bestRunValue = tonumber(profile.bestRunValue) or 0
     profile.starterKitVersion = tonumber(profile.starterKitVersion) or 0
     profile.questClaims = type(profile.questClaims) == 'table' and profile.questClaims or {}
@@ -237,6 +239,19 @@ local function getProfile(source)
     end
 
     return profiles[identifier], identifier
+end
+
+local function getProfileByIdentifier(identifier)
+    if not identifier then
+        return nil
+    end
+
+    if not profiles[identifier] then
+        profiles[identifier] = defaultProfile()
+    end
+
+    ensureProfileShape(profiles[identifier])
+    return profiles[identifier]
 end
 
 local function getLootValue(loot)
@@ -345,6 +360,7 @@ local function buildProfileSnapshot(source)
         raids = profile.raids,
         extractions = profile.extractions,
         deaths = profile.deaths,
+        mia = profile.mia,
         bestRunValue = profile.bestRunValue,
         stash = buildLootList(profile.stash),
         stashValue = getLootValue(profile.stash),
@@ -460,8 +476,10 @@ end
 local function getActiveRaidCount()
     local count = 0
 
-    for _ in pairs(activeSessions) do
-        count = count + 1
+    for _, session in pairs(activeSessions) do
+        if next(session.players) ~= nil then
+            count = count + 1
+        end
     end
 
     return count
@@ -600,6 +618,20 @@ local function createDeathDropCrate(session, coords)
     return crate
 end
 
+local function getRaidFallbackCoords(source, raid)
+    if raid and raid.lastCoords then
+        return raid.lastCoords
+    end
+
+    local ped = GetPlayerPed(source)
+    if ped ~= 0 then
+        local coords = GetEntityCoords(ped)
+        return vec3(coords.x, coords.y, coords.z)
+    end
+
+    return nil
+end
+
 local function deleteDeathDropCrate(drop)
     if drop and drop.crate and DoesEntityExist(drop.crate) then
         DeleteEntity(drop.crate)
@@ -618,7 +650,7 @@ local function deleteSessionDeathDrops(session)
     session.deathDrops = {}
 end
 
-local function createDeathDrop(source, raid)
+local function createDeathDrop(source, raid, dropCoords)
     local dropLoot = copyLoot(raid.carry)
     addLoot(dropLoot, raid.loadout or {})
 
@@ -635,14 +667,13 @@ local function createDeathDrop(source, raid)
         return
     end
 
-    local ped = GetPlayerPed(source)
-    if ped == 0 then
+    local coords = dropCoords or getRaidFallbackCoords(source, raid)
+    if not coords then
         clearLoot(raid.carry)
         clearLoot(raid.loadout or {})
         return
     end
 
-    local coords = GetEntityCoords(ped)
     local dropId = nextDropId
     nextDropId = nextDropId + 1
 
@@ -723,8 +754,12 @@ local function cleanupRaid(source)
             session.players[source] = nil
 
             if next(session.players) == nil then
-                deleteSessionDeathDrops(session)
-                activeSessions[raid.sessionId] = nil
+                buildDeathDropPayload(session)
+
+                if next(session.deathDrops) == nil then
+                    deleteSessionDeathDrops(session)
+                    activeSessions[raid.sessionId] = nil
+                end
             else
                 broadcastSession(session, 'standalone_extraction:client:updateDeathDrops', {
                     drops = buildDeathDropPayload(session),
@@ -773,11 +808,12 @@ local function startSession(players)
 
     for _, playerId in ipairs(players) do
         if GetPlayerName(playerId) and not activeRaids[playerId] then
-            local profile = getProfile(playerId)
+            local profile, identifier = getProfile(playerId)
 
             if profile then
                 local loadout = getStarterLoadout(profile)
                 local loadoutLoot = buildLoadoutLoot(profile)
+                local spawn = chooseSpawnPoint()
 
                 if Config.Raid.entryFee > 0 then
                     profile.cash = profile.cash - Config.Raid.entryFee
@@ -795,12 +831,14 @@ local function startSession(players)
                     expiresAt = session.expiresAt,
                     carry = newLootBag(),
                     loadout = loadoutLoot,
+                    lastCoords = vec3(spawn.x, spawn.y, spawn.z),
+                    identifier = identifier,
                 }
 
                 SetPlayerRoutingBucket(playerId, session.bucket)
                 TriggerClientEvent('standalone_extraction:client:startRaid', playerId, {
                     raidId = sessionId,
-                    spawn = chooseSpawnPoint(),
+                    spawn = spawn,
                     durationSeconds = Config.Raid.durationSeconds,
                     maxCarryWeight = Config.Raid.maxCarryWeight,
                     loadout = loadout,
@@ -1240,7 +1278,7 @@ local function onPlayerDeath(source)
         return
     end
 
-    local profile = getProfile(source)
+    local profile = getProfile(source) or getProfileByIdentifier(raid.identifier)
     if profile then
         deletePersistedLoadout(profile, raid.loadout or {})
         profile.deaths = profile.deaths + 1
@@ -1249,6 +1287,41 @@ local function onPlayerDeath(source)
 
     createDeathDrop(source, raid)
     endRaid(source, 'dead', Config.Strings.died)
+end
+
+local function onPlayerDroppedInRaid(source)
+    local raid = getRaid(source)
+    if not raid then
+        return
+    end
+
+    local profile = getProfile(source) or getProfileByIdentifier(raid.identifier)
+    if profile then
+        deletePersistedLoadout(profile, raid.loadout or {})
+        profile.mia = profile.mia + 1
+        saveProfiles()
+    end
+
+    createDeathDrop(source, raid, getRaidFallbackCoords(source, raid))
+    cleanupRaid(source)
+end
+
+local function markPlayerMia(source)
+    local raid = getRaid(source)
+    if not raid then
+        return
+    end
+
+    local profile = getProfile(source) or getProfileByIdentifier(raid.identifier)
+    if profile then
+        deletePersistedLoadout(profile, raid.loadout or {})
+        profile.mia = profile.mia + 1
+        saveProfiles()
+    end
+
+    clearLoot(raid.carry)
+    clearLoot(raid.loadout or {})
+    endRaid(source, 'mia', 'You went MIA. Your carried equipment was lost.')
 end
 
 RegisterNetEvent('standalone_extraction:server:playerDied', function()
@@ -1262,7 +1335,7 @@ AddEventHandler('playerDropped', function()
     removeFromQueue(source)
 
     if activeRaids[source] then
-        cleanupRaid(source)
+        onPlayerDroppedInRaid(source)
     end
 end)
 
@@ -1304,15 +1377,33 @@ end)
 CreateThread(function()
     while true do
         local now = os.time()
+        local timedOutPlayers = {}
 
         for source, raid in pairs(activeRaids) do
+            local ped = GetPlayerPed(source)
+            if ped ~= 0 then
+                local coords = GetEntityCoords(ped)
+                raid.lastCoords = vec3(coords.x, coords.y, coords.z)
+            end
+
             if now >= raid.expiresAt then
-                clearLoot(raid.carry)
-                endRaid(source, 'timeout', Config.Strings.timed_out)
+                timedOutPlayers[#timedOutPlayers + 1] = source
             end
         end
 
-        Wait(5000)
+        for _, source in ipairs(timedOutPlayers) do
+            markPlayerMia(source)
+        end
+
+        for sessionId, session in pairs(activeSessions) do
+            buildDeathDropPayload(session)
+
+            if next(session.players) == nil and next(session.deathDrops) == nil then
+                activeSessions[sessionId] = nil
+            end
+        end
+
+        Wait(2500)
     end
 end)
 
