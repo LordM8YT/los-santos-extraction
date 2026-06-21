@@ -957,6 +957,7 @@ CreateThread(function()
                         end
 
                         if distance < Config.InteractDistance and (not nearestAction or distance < nearestAction.distance) then
+                            sleep = 0
                             nearestAction = {
                                 distance = distance,
                                 label = ('[E] Search %s'):format(spot.label),
@@ -995,6 +996,7 @@ CreateThread(function()
                     end
 
                     if distance < Config.InteractDistance and (not nearestAction or distance < nearestAction.distance) then
+                        sleep = 0
                         nearestAction = {
                             distance = distance,
                             label = ('[E] Recover death drop ($%s)'):format(formatNumber(drop.value)),
