@@ -3,8 +3,12 @@ local SAVE_FILE = 'data/players.json'
 
 local profiles = {}
 local activeRaids = {}
+local activeSessions = {}
+local queuedPlayers = {}
+local queuedLookup = {}
 local raidStartLocks = {}
 local nextRaidId = 1
+local nextDropId = 1
 local extractionById = {}
 local isPlayerNear
 
@@ -409,14 +413,168 @@ local function getRaid(source)
     return activeRaids[source]
 end
 
+local function getSession(sessionId)
+    return sessionId and activeSessions[sessionId] or nil
+end
+
 local function getActiveRaidCount()
     local count = 0
 
-    for _ in pairs(activeRaids) do
+    for _ in pairs(activeSessions) do
         count = count + 1
     end
 
     return count
+end
+
+local function removeFromQueue(source)
+    if not queuedLookup[source] then
+        return
+    end
+
+    queuedLookup[source] = nil
+
+    for index = #queuedPlayers, 1, -1 do
+        if queuedPlayers[index] == source then
+            table.remove(queuedPlayers, index)
+            return
+        end
+    end
+end
+
+local function copyLoot(loot)
+    local copy = newLootBag()
+
+    for itemName in pairs(Config.Items) do
+        copy[itemName] = tonumber(loot[itemName]) or 0
+    end
+
+    return copy
+end
+
+local function hasLoot(loot)
+    return getLootWeight(loot) > 0
+end
+
+local function buildExtractionPayload(extractionIds)
+    local points = {}
+
+    for _, extractId in ipairs(extractionIds or {}) do
+        local point = extractionById[extractId]
+        if point then
+            points[#points + 1] = point
+        end
+    end
+
+    return points
+end
+
+local function sessionHasExtraction(session, extractId)
+    if not session then
+        return false
+    end
+
+    for _, sessionExtractId in ipairs(session.extractionIds or {}) do
+        if sessionExtractId == extractId then
+            return true
+        end
+    end
+
+    return false
+end
+
+local function chooseSessionExtractions()
+    local ids = {}
+    local pool = {}
+
+    for _, point in ipairs(Config.Extractions) do
+        pool[#pool + 1] = point.id
+    end
+
+    local extractionConfig = SessionConfig.Extractions or {}
+    local wanted = tonumber(extractionConfig.pointsPerSession) or #pool
+    wanted = math.max(1, math.min(wanted, #pool))
+
+    while #ids < wanted and #pool > 0 do
+        local index = math.random(1, #pool)
+        ids[#ids + 1] = pool[index]
+        table.remove(pool, index)
+    end
+
+    return ids
+end
+
+local function broadcastSession(session, eventName, payload)
+    if not session then
+        return
+    end
+
+    for playerId in pairs(session.players) do
+        if GetPlayerName(playerId) then
+            TriggerClientEvent(eventName, playerId, payload)
+        end
+    end
+end
+
+local function buildDeathDropPayload(session)
+    local drops = {}
+    local now = os.time()
+
+    if not session then
+        return drops
+    end
+
+    for dropId, drop in pairs(session.deathDrops) do
+        if drop.expiresAt > now then
+            drops[#drops + 1] = {
+                id = dropId,
+                coords = drop.coords,
+                value = getLootValue(drop.loot),
+                weight = getLootWeight(drop.loot),
+            }
+        else
+            session.deathDrops[dropId] = nil
+        end
+    end
+
+    return drops
+end
+
+local function createDeathDrop(source, raid)
+    if not (SessionConfig.DeathDrops and SessionConfig.DeathDrops.enabled) or not hasLoot(raid.carry) then
+        clearLoot(raid.carry)
+        return
+    end
+
+    local session = getSession(raid.sessionId)
+    if not session then
+        clearLoot(raid.carry)
+        return
+    end
+
+    local ped = GetPlayerPed(source)
+    if ped == 0 then
+        clearLoot(raid.carry)
+        return
+    end
+
+    local coords = GetEntityCoords(ped)
+    local dropId = nextDropId
+    nextDropId = nextDropId + 1
+
+    session.deathDrops[dropId] = {
+        id = dropId,
+        owner = source,
+        coords = vec3(coords.x, coords.y, coords.z),
+        loot = copyLoot(raid.carry),
+        createdAt = os.time(),
+        expiresAt = os.time() + (tonumber(SessionConfig.DeathDrops.ttlSeconds) or 900),
+    }
+
+    clearLoot(raid.carry)
+    broadcastSession(session, 'standalone_extraction:client:updateDeathDrops', {
+        drops = buildDeathDropPayload(session),
+    })
 end
 
 isPlayerNear = function(source, coords, maxDistance)
@@ -472,6 +630,22 @@ local function rollLootItem(tier)
 end
 
 local function cleanupRaid(source)
+    local raid = activeRaids[source]
+    if raid then
+        local session = getSession(raid.sessionId)
+        if session then
+            session.players[source] = nil
+
+            if next(session.players) == nil then
+                activeSessions[raid.sessionId] = nil
+            else
+                broadcastSession(session, 'standalone_extraction:client:updateDeathDrops', {
+                    drops = buildDeathDropPayload(session),
+                })
+            end
+        end
+    end
+
     activeRaids[source] = nil
 
     if GetPlayerName(source) then
@@ -491,11 +665,117 @@ local function endRaid(source, status, message)
     })
 end
 
+local function startSession(players)
+    local sessionId = nextRaidId
+    nextRaidId = nextRaidId + 1
+
+    local session = {
+        id = sessionId,
+        bucket = Config.Raid.bucketBase + sessionId,
+        startedAt = os.time(),
+        expiresAt = os.time() + Config.Raid.durationSeconds,
+        players = {},
+        lootedSpots = {},
+        deathDrops = {},
+        extractionIds = chooseSessionExtractions(),
+    }
+
+    activeSessions[sessionId] = session
+
+    local shouldSave = false
+
+    for _, playerId in ipairs(players) do
+        if GetPlayerName(playerId) and not activeRaids[playerId] then
+            local profile = getProfile(playerId)
+
+            if profile then
+                if Config.Raid.entryFee > 0 then
+                    profile.cash = profile.cash - Config.Raid.entryFee
+                end
+
+                profile.raids = profile.raids + 1
+                shouldSave = true
+
+                session.players[playerId] = true
+                activeRaids[playerId] = {
+                    id = sessionId,
+                    sessionId = sessionId,
+                    bucket = session.bucket,
+                    startedAt = session.startedAt,
+                    expiresAt = session.expiresAt,
+                    carry = newLootBag(),
+                }
+
+                SetPlayerRoutingBucket(playerId, session.bucket)
+                TriggerClientEvent('standalone_extraction:client:startRaid', playerId, {
+                    raidId = sessionId,
+                    spawn = chooseSpawnPoint(),
+                    durationSeconds = Config.Raid.durationSeconds,
+                    maxCarryWeight = Config.Raid.maxCarryWeight,
+                    loadout = getStarterLoadout(profile),
+                    extractions = buildExtractionPayload(session.extractionIds),
+                    deathDrops = buildDeathDropPayload(session),
+                })
+            end
+        end
+    end
+
+    if next(session.players) == nil then
+        activeSessions[sessionId] = nil
+        return
+    end
+
+    if shouldSave then
+        saveProfiles()
+    end
+end
+
+local function processMatchmakingQueue()
+    local matchmaking = SessionConfig.Matchmaking or {}
+    local minPlayers = math.max(1, tonumber(matchmaking.minPlayers) or 1)
+    local maxPlayers = math.max(minPlayers, tonumber(matchmaking.maxPlayers) or minPlayers)
+
+    while #queuedPlayers >= minPlayers do
+        local maxConcurrentRaids = tonumber(Config.Raid.maxConcurrentRaids) or 0
+        if maxConcurrentRaids > 0 and getActiveRaidCount() >= maxConcurrentRaids then
+            return
+        end
+
+        local group = {}
+
+        while #group < maxPlayers and #queuedPlayers > 0 do
+            local playerId = table.remove(queuedPlayers, 1)
+            queuedLookup[playerId] = nil
+
+            if GetPlayerName(playerId) and not activeRaids[playerId] then
+                group[#group + 1] = playerId
+            end
+        end
+
+        if #group >= minPlayers then
+            startSession(group)
+        else
+            for index = #group, 1, -1 do
+                local playerId = group[index]
+                table.insert(queuedPlayers, 1, playerId)
+                queuedLookup[playerId] = true
+            end
+
+            return
+        end
+    end
+end
+
 RegisterNetEvent('standalone_extraction:server:joinRaid', function()
     local source = source
 
     if getRaid(source) then
         notify(source, Config.Strings.already_in_raid)
+        return
+    end
+
+    if queuedLookup[source] then
+        notify(source, 'You are already queued for deployment.')
         return
     end
 
@@ -535,35 +815,22 @@ RegisterNetEvent('standalone_extraction:server:joinRaid', function()
             notify(source, ('You need $%s to start a raid.'):format(Config.Raid.entryFee))
             return
         end
-
-        profile.cash = profile.cash - Config.Raid.entryFee
     end
 
-    profile.raids = profile.raids + 1
-    saveProfiles()
-
-    local raidId = nextRaidId
-    nextRaidId = nextRaidId + 1
-
-    activeRaids[source] = {
-        id = raidId,
-        bucket = Config.Raid.bucketBase + raidId,
-        startedAt = os.time(),
-        expiresAt = os.time() + Config.Raid.durationSeconds,
-        lootedSpots = {},
-        carry = newLootBag(),
-    }
-
-    SetPlayerRoutingBucket(source, activeRaids[source].bucket)
     raidStartLocks[source] = nil
 
-    TriggerClientEvent('standalone_extraction:client:startRaid', source, {
-        raidId = raidId,
-        spawn = chooseSpawnPoint(),
-        durationSeconds = Config.Raid.durationSeconds,
-        maxCarryWeight = Config.Raid.maxCarryWeight,
-        loadout = getStarterLoadout(profile),
-    })
+    local matchmaking = SessionConfig.Matchmaking or {}
+    local minPlayers = math.max(1, tonumber(matchmaking.minPlayers) or 1)
+    if not matchmaking.enabled or minPlayers <= 1 then
+        startSession({ source })
+        return
+    end
+
+    queuedLookup[source] = true
+    queuedPlayers[#queuedPlayers + 1] = source
+
+    notify(source, ('Queued for deployment (%s/%s).'):format(#queuedPlayers, tonumber(SessionConfig.Matchmaking.maxPlayers) or 1))
+    processMatchmakingQueue()
 end)
 
 RegisterNetEvent('standalone_extraction:server:lootSpot', function(spotId)
@@ -575,12 +842,18 @@ RegisterNetEvent('standalone_extraction:server:lootSpot', function(spotId)
         return
     end
 
+    local session = getSession(raid.sessionId)
+    if not session then
+        endRaid(source, 'error', 'Raid session expired.')
+        return
+    end
+
     local spot = getWorldLootSpot(spotId)
     if not spot then
         return
     end
 
-    if raid.lootedSpots[spotId] then
+    if session.lootedSpots[spotId] then
         notify(source, 'This cache is already empty.')
         return
     end
@@ -599,8 +872,12 @@ RegisterNetEvent('standalone_extraction:server:lootSpot', function(spotId)
         return
     end
 
-    raid.lootedSpots[spotId] = true
+    session.lootedSpots[spotId] = true
     raid.carry[itemName] = (raid.carry[itemName] or 0) + amount
+
+    broadcastSession(session, 'standalone_extraction:client:lootSpotEmptied', {
+        spotId = spotId,
+    })
 
     TriggerClientEvent('standalone_extraction:client:lootResult', source, {
         spotId = spotId,
@@ -621,6 +898,11 @@ RegisterNetEvent('standalone_extraction:server:extract', function(extractId)
 
     if not raid then
         notify(source, Config.Strings.not_in_raid)
+        return
+    end
+
+    local session = getSession(raid.sessionId)
+    if not session or not sessionHasExtraction(session, extractId) then
         return
     end
 
@@ -654,6 +936,64 @@ RegisterNetEvent('standalone_extraction:server:extract', function(extractId)
     saveProfiles()
 
     endRaid(source, 'extracted', Config.Strings.extracted)
+end)
+
+RegisterNetEvent('standalone_extraction:server:lootDeathDrop', function(dropId)
+    local source = source
+    local raid = getRaid(source)
+
+    if not raid then
+        notify(source, Config.Strings.not_in_raid)
+        return
+    end
+
+    local session = getSession(raid.sessionId)
+    if not session then
+        endRaid(source, 'error', 'Raid session expired.')
+        return
+    end
+
+    dropId = tonumber(dropId)
+    local drop = dropId and session.deathDrops[dropId]
+    if not drop then
+        notify(source, 'This death drop is already gone.')
+        return
+    end
+
+    if drop.expiresAt <= os.time() then
+        session.deathDrops[dropId] = nil
+        broadcastSession(session, 'standalone_extraction:client:updateDeathDrops', {
+            drops = buildDeathDropPayload(session),
+        })
+        notify(source, 'This death drop has expired.')
+        return
+    end
+
+    if not isPlayerNear(source, drop.coords, Config.ValidationDistance) then
+        return
+    end
+
+    local nextWeight = getLootWeight(raid.carry) + getLootWeight(drop.loot)
+    if nextWeight > Config.Raid.maxCarryWeight then
+        notify(source, Config.Strings.bag_full)
+        return
+    end
+
+    addLoot(raid.carry, drop.loot)
+    session.deathDrops[dropId] = nil
+
+    TriggerClientEvent('standalone_extraction:client:updateCarry', source, {
+        carry = buildLootList(raid.carry),
+        carryValue = getLootValue(raid.carry),
+        carryWeight = getLootWeight(raid.carry),
+        maxCarryWeight = Config.Raid.maxCarryWeight,
+    })
+
+    notify(source, ('Recovered death drop worth $%s.'):format(getLootValue(drop.loot)))
+    sendInventorySnapshot(source, false)
+    broadcastSession(session, 'standalone_extraction:client:updateDeathDrops', {
+        drops = buildDeathDropPayload(session),
+    })
 end)
 
 RegisterNetEvent('standalone_extraction:server:sellSecuredLoot', function()
@@ -808,13 +1148,14 @@ RegisterNetEvent('standalone_extraction:server:playerDied', function()
         return
     end
 
+    createDeathDrop(source, raid)
+
     local profile = getProfile(source)
     if profile then
         profile.deaths = profile.deaths + 1
         saveProfiles()
     end
 
-    clearLoot(raid.carry)
     endRaid(source, 'dead', Config.Strings.died)
 end)
 
@@ -822,6 +1163,7 @@ AddEventHandler('playerDropped', function()
     local source = source
 
     raidStartLocks[source] = nil
+    removeFromQueue(source)
 
     if activeRaids[source] then
         cleanupRaid(source)
@@ -847,6 +1189,19 @@ AddEventHandler('onResourceStop', function(resourceName)
 
     for source in pairs(activeRaids) do
         cleanupRaid(source)
+    end
+end)
+
+CreateThread(function()
+    local queueTickMs = tonumber(SessionConfig.Matchmaking and SessionConfig.Matchmaking.queueTickMs) or 1500
+
+    while true do
+        if #queuedPlayers > 0 then
+            processMatchmakingQueue()
+            Wait(queueTickMs)
+        else
+            Wait(2500)
+        end
     end
 end)
 

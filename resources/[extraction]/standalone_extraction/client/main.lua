@@ -7,6 +7,8 @@ local raidState = {
     carryWeight = 0,
     maxCarryWeight = Config.Raid.maxCarryWeight,
     expiresAt = 0,
+    extractions = {},
+    deathDrops = {},
 }
 
 local summaryPanel = {
@@ -305,6 +307,8 @@ local function resetRaidState()
     raidState.carryWeight = 0
     raidState.maxCarryWeight = Config.Raid.maxCarryWeight
     raidState.expiresAt = 0
+    raidState.extractions = {}
+    raidState.deathDrops = {}
     deathReported = false
 
     for _, blip in ipairs(extractionBlips) do
@@ -442,8 +446,9 @@ local function createExtractionBlips()
     end
 
     local mapConfig = Config.Map and Config.Map.extractionBlips or {}
+    local activeExtractions = #raidState.extractions > 0 and raidState.extractions or Config.Extractions
 
-    for _, point in ipairs(Config.Extractions) do
+    for _, point in ipairs(activeExtractions) do
         local coords = asVec3(point.coords)
         local blip = AddBlipForCoord(coords.x, coords.y, coords.z)
         SetBlipSprite(blip, 356)
@@ -678,6 +683,8 @@ RegisterNetEvent('standalone_extraction:client:startRaid', function(payload)
     raidState.raidId = payload.raidId
     raidState.expiresAt = GetGameTimer() + ((payload.durationSeconds or Config.Raid.durationSeconds) * 1000)
     raidState.maxCarryWeight = payload.maxCarryWeight or Config.Raid.maxCarryWeight
+    raidState.extractions = payload.extractions or {}
+    raidState.deathDrops = payload.deathDrops or {}
 
     setLobbyStaging(false)
     createExtractionBlips()
@@ -695,8 +702,21 @@ RegisterNetEvent('standalone_extraction:client:lootResult', function(payload)
     notify(('+%sx %s'):format(payload.amount, payload.label))
 end)
 
+RegisterNetEvent('standalone_extraction:client:lootSpotEmptied', function(payload)
+    if not payload or not payload.spotId then
+        return
+    end
+
+    raidState.lootedSpots[payload.spotId] = true
+    removeLootBlip(payload.spotId)
+end)
+
 RegisterNetEvent('standalone_extraction:client:updateCarry', function(payload)
     updateCarryState(payload)
+end)
+
+RegisterNetEvent('standalone_extraction:client:updateDeathDrops', function(payload)
+    raidState.deathDrops = payload and payload.drops or {}
 end)
 
 RegisterNetEvent('standalone_extraction:client:showProfile', function(profile)
@@ -860,7 +880,8 @@ CreateThread(function()
                     end
                 end
 
-                for _, extractPoint in ipairs(Config.Extractions) do
+                local activeExtractions = #raidState.extractions > 0 and raidState.extractions or Config.Extractions
+                for _, extractPoint in ipairs(activeExtractions) do
                     local distance = getDistance(playerCoords, extractPoint.coords)
 
                     if distance < Config.DrawDistance then
@@ -873,6 +894,24 @@ CreateThread(function()
                                 label = ('[E] Extract at %s'):format(extractPoint.label),
                                 action = 'extract',
                                 id = extractPoint.id,
+                            }
+                        end
+                    end
+                end
+
+                for _, drop in ipairs(raidState.deathDrops or {}) do
+                    local distance = getDistance(playerCoords, drop.coords)
+
+                    if distance < Config.DrawDistance then
+                        sleep = 0
+                        drawMarkerAt(drop.coords, { r = 220, g = 70, b = 45, a = 155 }, 0.95)
+
+                        if distance < Config.InteractDistance and (not nearestAction or distance < nearestAction.distance) then
+                            nearestAction = {
+                                distance = distance,
+                                label = ('[E] Recover death drop ($%s)'):format(formatNumber(drop.value)),
+                                action = 'deathdrop',
+                                id = drop.id,
                             }
                         end
                     end
@@ -949,6 +988,12 @@ CreateThread(function()
 
                         if finished then
                             TriggerServerEvent('standalone_extraction:server:extract', nearestAction.id)
+                        end
+                    elseif nearestAction.action == 'deathdrop' then
+                        local finished = progressAction('Recovering death drop', Config.Raid.lootTime, 'amb@prop_human_bum_bin@base', 'base')
+
+                        if finished then
+                            TriggerServerEvent('standalone_extraction:server:lootDeathDrop', nearestAction.id)
                         end
                     end
                 end

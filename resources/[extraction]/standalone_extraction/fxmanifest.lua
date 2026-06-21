@@ -14,7 +14,10 @@ dependencies {
     'extraction_hud'
 }
 
-shared_script 'config.lua'
+shared_scripts {
+    'config.lua',
+    'shared/session_config.lua'
+}
 
 client_scripts {
     'client/population.lua',
