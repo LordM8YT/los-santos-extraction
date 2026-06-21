@@ -374,6 +374,21 @@ local function addLoot(targetLoot, rewardLoot)
     end
 end
 
+local function removeLoot(targetLoot, lootToRemove)
+    local changed = false
+
+    for itemName in pairs(Config.Items) do
+        local removeCount = tonumber(lootToRemove[itemName]) or 0
+        if removeCount > 0 then
+            local current = tonumber(targetLoot[itemName]) or 0
+            targetLoot[itemName] = math.max(0, current - removeCount)
+            changed = changed or targetLoot[itemName] ~= current
+        end
+    end
+
+    return changed
+end
+
 local function clearLoot(loot)
     for itemName in pairs(Config.Items) do
         loot[itemName] = 0
@@ -407,6 +422,31 @@ local function getStarterLoadout(profile)
     end
 
     return loadout
+end
+
+local function buildLoadoutLoot(profile)
+    local loadoutLoot = newLootBag()
+
+    for itemName, itemData in pairs(Config.Items) do
+        if itemData.type == 'weapon' and (tonumber(profile.stash[itemName]) or 0) > 0 then
+            loadoutLoot[itemName] = 1
+
+            if itemData.ammoItem then
+                loadoutLoot[itemData.ammoItem] = tonumber(profile.stash[itemData.ammoItem]) or 0
+            end
+        end
+    end
+
+    return loadoutLoot
+end
+
+local function deletePersistedLoadout(profile, loadoutLoot)
+    -- Current persistence is players.json. Swap this adapter for oxmysql once DB-backed loadouts land.
+    if not profile or getLootWeight(loadoutLoot) <= 0 then
+        return false
+    end
+
+    return removeLoot(profile.stash, loadoutLoot)
 end
 
 local function getRaid(source)
@@ -533,6 +573,10 @@ local function buildDeathDropPayload(session)
                 weight = getLootWeight(drop.loot),
             }
         else
+            if drop.crate and DoesEntityExist(drop.crate) then
+                DeleteEntity(drop.crate)
+            end
+
             session.deathDrops[dropId] = nil
         end
     end
@@ -540,21 +584,61 @@ local function buildDeathDropPayload(session)
     return drops
 end
 
+local function createDeathDropCrate(session, coords)
+    local dropConfig = SessionConfig.DeathDrops or {}
+    local model = dropConfig.crateModel or 'prop_box_wood02a_pu'
+    local groundOffset = tonumber(dropConfig.crateGroundOffset) or 0.95
+    local crate = CreateObject(joaat(model), coords.x, coords.y, coords.z - groundOffset, true, true, false)
+
+    if not crate or crate == 0 then
+        return nil
+    end
+
+    SetEntityRoutingBucket(crate, session.bucket)
+    FreezeEntityPosition(crate, true)
+
+    return crate
+end
+
+local function deleteDeathDropCrate(drop)
+    if drop and drop.crate and DoesEntityExist(drop.crate) then
+        DeleteEntity(drop.crate)
+    end
+end
+
+local function deleteSessionDeathDrops(session)
+    if not session then
+        return
+    end
+
+    for _, drop in pairs(session.deathDrops) do
+        deleteDeathDropCrate(drop)
+    end
+
+    session.deathDrops = {}
+end
+
 local function createDeathDrop(source, raid)
-    if not (SessionConfig.DeathDrops and SessionConfig.DeathDrops.enabled) or not hasLoot(raid.carry) then
+    local dropLoot = copyLoot(raid.carry)
+    addLoot(dropLoot, raid.loadout or {})
+
+    if not (SessionConfig.DeathDrops and SessionConfig.DeathDrops.enabled) or not hasLoot(dropLoot) then
         clearLoot(raid.carry)
+        clearLoot(raid.loadout or {})
         return
     end
 
     local session = getSession(raid.sessionId)
     if not session then
         clearLoot(raid.carry)
+        clearLoot(raid.loadout or {})
         return
     end
 
     local ped = GetPlayerPed(source)
     if ped == 0 then
         clearLoot(raid.carry)
+        clearLoot(raid.loadout or {})
         return
     end
 
@@ -566,12 +650,14 @@ local function createDeathDrop(source, raid)
         id = dropId,
         owner = source,
         coords = vec3(coords.x, coords.y, coords.z),
-        loot = copyLoot(raid.carry),
+        crate = createDeathDropCrate(session, coords),
+        loot = dropLoot,
         createdAt = os.time(),
         expiresAt = os.time() + (tonumber(SessionConfig.DeathDrops.ttlSeconds) or 900),
     }
 
     clearLoot(raid.carry)
+    clearLoot(raid.loadout or {})
     broadcastSession(session, 'standalone_extraction:client:updateDeathDrops', {
         drops = buildDeathDropPayload(session),
     })
@@ -637,6 +723,7 @@ local function cleanupRaid(source)
             session.players[source] = nil
 
             if next(session.players) == nil then
+                deleteSessionDeathDrops(session)
                 activeSessions[raid.sessionId] = nil
             else
                 broadcastSession(session, 'standalone_extraction:client:updateDeathDrops', {
@@ -689,6 +776,9 @@ local function startSession(players)
             local profile = getProfile(playerId)
 
             if profile then
+                local loadout = getStarterLoadout(profile)
+                local loadoutLoot = buildLoadoutLoot(profile)
+
                 if Config.Raid.entryFee > 0 then
                     profile.cash = profile.cash - Config.Raid.entryFee
                 end
@@ -704,6 +794,7 @@ local function startSession(players)
                     startedAt = session.startedAt,
                     expiresAt = session.expiresAt,
                     carry = newLootBag(),
+                    loadout = loadoutLoot,
                 }
 
                 SetPlayerRoutingBucket(playerId, session.bucket)
@@ -712,7 +803,7 @@ local function startSession(players)
                     spawn = chooseSpawnPoint(),
                     durationSeconds = Config.Raid.durationSeconds,
                     maxCarryWeight = Config.Raid.maxCarryWeight,
-                    loadout = getStarterLoadout(profile),
+                    loadout = loadout,
                     extractions = buildExtractionPayload(session.extractionIds),
                     deathDrops = buildDeathDropPayload(session),
                 })
@@ -961,6 +1052,7 @@ RegisterNetEvent('standalone_extraction:server:lootDeathDrop', function(dropId)
     end
 
     if drop.expiresAt <= os.time() then
+        deleteDeathDropCrate(drop)
         session.deathDrops[dropId] = nil
         broadcastSession(session, 'standalone_extraction:client:updateDeathDrops', {
             drops = buildDeathDropPayload(session),
@@ -980,6 +1072,7 @@ RegisterNetEvent('standalone_extraction:server:lootDeathDrop', function(dropId)
     end
 
     addLoot(raid.carry, drop.loot)
+    deleteDeathDropCrate(drop)
     session.deathDrops[dropId] = nil
 
     TriggerClientEvent('standalone_extraction:client:updateCarry', source, {
@@ -1141,22 +1234,25 @@ RegisterNetEvent('standalone_extraction:server:leaveRaid', function()
     endRaid(source, 'left', Config.Strings.left_raid)
 end)
 
-RegisterNetEvent('standalone_extraction:server:playerDied', function()
-    local source = source
+local function onPlayerDeath(source)
     local raid = getRaid(source)
     if not raid then
         return
     end
 
-    createDeathDrop(source, raid)
-
     local profile = getProfile(source)
     if profile then
+        deletePersistedLoadout(profile, raid.loadout or {})
         profile.deaths = profile.deaths + 1
         saveProfiles()
     end
 
+    createDeathDrop(source, raid)
     endRaid(source, 'dead', Config.Strings.died)
+end
+
+RegisterNetEvent('standalone_extraction:server:playerDied', function()
+    onPlayerDeath(source)
 end)
 
 AddEventHandler('playerDropped', function()

@@ -15,4 +15,6 @@ SessionConfig.Extractions = {
 SessionConfig.DeathDrops = {
     enabled = true,
     ttlSeconds = 900,
+    crateModel = 'prop_box_wood02a_pu',
+    crateGroundOffset = 0.95,
 }
