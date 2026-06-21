@@ -671,6 +671,65 @@ local function progressAction(label, duration, animDict, animClip)
     return not IsEntityDead(ped)
 end
 
+local function getExtractionHoldDuration()
+    local extractionConfig = SessionConfig and SessionConfig.Extractions or {}
+    return math.max(1000, tonumber(extractionConfig.zoneHoldMs) or tonumber(Config.Raid.extractionTime) or 10000)
+end
+
+local function runExtractionZone(extractPoint)
+    local holdDuration = getExtractionHoldDuration()
+    local zoneRadius = tonumber(extractPoint.radius) or tonumber(Config.ValidationDistance) or 6.0
+    local startedAt = GetGameTimer()
+    local nextHudUpdate = 0
+
+    interactionBusy = true
+
+    while raidState.active do
+        local ped = PlayerPedId()
+        if IsEntityDead(ped) then
+            notify('Extraction failed. You died before evac arrived.')
+            break
+        end
+
+        local elapsed = GetGameTimer() - startedAt
+        local remainingSeconds = math.max(0, math.ceil((holdDuration - elapsed) / 1000))
+        local playerCoords = GetEntityCoords(ped)
+
+        if getDistance(playerCoords, extractPoint.coords) > zoneRadius then
+            notify('Extraction cancelled. Stay inside the extraction zone.')
+            break
+        end
+
+        drawMarkerAt(extractPoint.coords, extractPoint.color, 1.25)
+        drawHelpText(('Extraction arriving in %ss'):format(remainingSeconds))
+
+        if GetGameTimer() >= nextHudUpdate then
+            TriggerEvent('extraction_hud:client:progress', {
+                active = true,
+                label = ('Holding extraction zone: %s'):format(extractPoint.label),
+                percent = math.min(100, math.floor((elapsed / holdDuration) * 100.0)),
+            })
+
+            nextHudUpdate = GetGameTimer() + 90
+        end
+
+        if elapsed >= holdDuration then
+            TriggerServerEvent('standalone_extraction:server:extract', extractPoint.id)
+            interactionBusy = false
+            TriggerEvent('extraction_hud:client:progress', { active = false })
+            drawHelpText('')
+            return true
+        end
+
+        Wait(0)
+    end
+
+    interactionBusy = false
+    TriggerEvent('extraction_hud:client:progress', { active = false })
+    drawHelpText('')
+    return false
+end
+
 RegisterNetEvent('standalone_extraction:client:notify', function(message)
     notify(message)
 end)
@@ -891,9 +950,10 @@ CreateThread(function()
                         if distance < Config.InteractDistance and (not nearestAction or distance < nearestAction.distance) then
                             nearestAction = {
                                 distance = distance,
-                                label = ('[E] Extract at %s'):format(extractPoint.label),
+                                label = ('[E] Call extraction at %s'):format(extractPoint.label),
                                 action = 'extract',
                                 id = extractPoint.id,
+                                point = extractPoint,
                             }
                         end
                     end
@@ -984,11 +1044,7 @@ CreateThread(function()
                             end
                         end
                     elseif nearestAction.action == 'extract' then
-                        local finished = progressAction(Config.Strings.extract_progress, Config.Raid.extractionTime, 'missheistfbi3b_ig7', 'lift_fibagent_loop')
-
-                        if finished then
-                            TriggerServerEvent('standalone_extraction:server:extract', nearestAction.id)
-                        end
+                        runExtractionZone(nearestAction.point)
                     elseif nearestAction.action == 'deathdrop' then
                         local finished = progressAction('Recovering death drop', Config.Raid.lootTime, 'amb@prop_human_bum_bin@base', 'base')
 

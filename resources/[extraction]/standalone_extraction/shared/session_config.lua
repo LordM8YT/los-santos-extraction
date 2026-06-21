@@ -9,6 +9,7 @@ SessionConfig.Matchmaking = {
 
 SessionConfig.Extractions = {
     pointsPerSession = 3,
+    zoneHoldMs = 10000,
 }
 
 SessionConfig.DeathDrops = {
