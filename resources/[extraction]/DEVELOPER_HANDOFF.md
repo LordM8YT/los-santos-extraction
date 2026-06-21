@@ -36,6 +36,11 @@ Third-party dependencies are kept outside this folder in `resources/[overextende
 - `ox_inventory`
   Installed Overextended inventory. Requires `oxmysql`, `ox_lib`, and a supported bridge before enabling.
 
+Admin tooling is kept outside this folder in `resources/[admin]`:
+
+- `dam`
+  Standalone drawn admin menu. It requires `oxmysql`, ACE permissions, and a valid `mysql_connection_string` before enabling. Local project patch: permissions are enabled, and revive/kill hooks use standalone FiveM client events instead of framework exports. See `docs/DAM_ADMIN_MENU.md`.
+
 ## Current Design
 
 - Raids are private instances per player using routing buckets.
@@ -47,6 +52,7 @@ Third-party dependencies are kept outside this folder in `resources/[overextende
 - Lobby settings are currently client-side KVP preferences. `extraction_lobby` sends updates through `extraction_hud:client:setSettings`.
 - Extraction points should remain believable city exits such as tunnels, channels, highway ramps, ferry/boat ramps, rail exits, and service gates. Do not place extracts directly beside loot clusters unless the encounter is intentionally balanced around that risk.
 - `ox_lib` is enabled. `oxmysql` and `ox_inventory` are downloaded into `resources/[overextended]` but intentionally not auto-started yet.
+- DAM is downloaded into `resources/[admin]/dam` but intentionally not auto-started until MySQL is configured.
 - User-facing text and documentation should stay in English for easier external collaboration.
 - Internal item keys should remain stable because saved player data references them.
 

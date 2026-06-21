@@ -8,7 +8,7 @@ A standalone FiveM PvPvE extraction shooter prototype. The goal is to build a ga
 - FiveM natives
 - ox_lib
 - Custom standalone inventory/HUD/prototype persistence
-- oxmysql and ox_inventory are installed locally, but intentionally not enabled yet
+- oxmysql, ox_inventory, and DAM admin are installed locally, but intentionally not enabled yet
 
 ## Resource Layout
 
@@ -39,13 +39,14 @@ Custom project resources live in `resources/[extraction]`.
 
 ## Third-Party Dependencies
 
-These are not committed to this repo. Install them into `resources/[overextended]`.
+These are not committed to this repo. Install Overextended resources into `resources/[overextended]` and admin tooling into `resources/[admin]`.
 
 - `ox_lib` v3.37.2
 - `oxmysql` v2.14.1
 - `ox_inventory` v2.47.7
+- `dam` pinned to `abc0938dcc7a24f049d02be081d8d372885da186`
 
-Only `ox_lib` is enabled in `server.cfg` right now. Do not enable `ox_inventory` until a supported framework bridge or custom bridge strategy is chosen.
+Only `ox_lib` is enabled in `server.cfg` right now. Do not enable `ox_inventory` until a supported framework bridge or custom bridge strategy is chosen. Do not enable DAM until `oxmysql` has a valid `mysql_connection_string`. See `docs/DAM_ADMIN_MENU.md` for the local admin setup.
 
 ## Server Config
 
@@ -66,6 +67,18 @@ ensure extraction_hud
 ensure extraction_lobby
 ensure extraction_pause
 ensure standalone_extraction
+```
+
+Optional DAM admin menu after MySQL is configured:
+
+```cfg
+set mysql_connection_string "mysql://user:password@localhost/extraction"
+setr dam:debug false
+setr dam:language en
+add_ace group.admin dam.admin allow
+add_ace group.admin dam.dev allow
+ensure oxmysql
+ensure dam
 ```
 
 ## Development Rules

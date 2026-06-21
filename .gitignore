@@ -15,6 +15,7 @@
 # Third-party dependencies should be installed from their release sources.
 # See README.md for pinned versions currently used locally.
 /resources/\[overextended\]/
+/resources/\[admin\]/dam/
 
 # Do not commit live player data.
 /resources/\[extraction\]/standalone_extraction/data/players.json
