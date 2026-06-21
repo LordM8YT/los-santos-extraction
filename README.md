@@ -8,7 +8,8 @@ A standalone FiveM PvPvE extraction shooter prototype. The goal is to build a ga
 - FiveM natives
 - ox_lib
 - Custom standalone inventory/HUD/prototype persistence
-- oxmysql, ox_inventory, and DAM admin are installed locally, but intentionally not enabled yet
+- oxmysql and ox_inventory are installed locally, but intentionally not enabled yet
+- EasyAdmin is installed locally and enabled as the admin menu
 
 ## Resource Layout
 
@@ -18,6 +19,8 @@ Custom project resources live in `resources/[extraction]`.
   Shared item registry and tetris-ready item/container definitions.
 - `extraction_core`
   Shared foundation for identifiers, logging, constants, and future routing bucket ownership.
+- `extraction_admin`
+  Project-specific admin helpers, including ACE-protected coordinate clipboard commands.
 - `extraction_world`
   Loot crate definitions, spawned cache props, guard zones, and guard threat checks.
 - `extraction_character`
@@ -44,9 +47,9 @@ These are not committed to this repo. Install Overextended resources into `resou
 - `ox_lib` v3.37.2
 - `oxmysql` v2.14.1
 - `ox_inventory` v2.47.7
-- `dam` pinned to `abc0938dcc7a24f049d02be081d8d372885da186`
+- `EasyAdmin` v7.53 pinned to `d732e54626dc362dbd1e42121c0b243eacbf24e4`
 
-Only `ox_lib` is enabled in `server.cfg` right now. Do not enable `ox_inventory` until a supported framework bridge or custom bridge strategy is chosen. Do not enable DAM until `oxmysql` has a valid `mysql_connection_string`. See `docs/DAM_ADMIN_MENU.md` for the local admin setup.
+`ox_lib` and `EasyAdmin` are enabled in `server.cfg` right now. Do not enable `ox_inventory` until a supported framework bridge or custom bridge strategy is chosen. See `docs/EASYADMIN_SETUP.md` for the local admin setup.
 
 ## Server Config
 
@@ -56,9 +59,11 @@ Use `server.example.cfg` as the safe handoff template. It currently starts:
 
 ```cfg
 ensure ox_lib
+ensure EasyAdmin
 ensure extraction_items
 ensure extraction_loadscreen
 ensure extraction_core
+ensure extraction_admin
 ensure extraction_chat
 ensure extraction_world
 ensure extraction_character
@@ -69,16 +74,15 @@ ensure extraction_pause
 ensure standalone_extraction
 ```
 
-Optional DAM admin menu after MySQL is configured:
+EasyAdmin admin menu:
 
 ```cfg
-set mysql_connection_string "mysql://user:password@localhost/extraction"
-setr dam:debug false
-setr dam:language en
-add_ace group.admin dam.admin allow
-add_ace group.admin dam.dev allow
-ensure oxmysql
-ensure dam
+setr ea_LanguageName "en"
+setr ea_defaultKey "F7"
+setr ea_enableSplash false
+setr ea_enableReportScreenshots false
+add_ace group.admin easyadmin allow
+add_ace resource.EasyAdmin command allow
 ```
 
 ## Development Rules

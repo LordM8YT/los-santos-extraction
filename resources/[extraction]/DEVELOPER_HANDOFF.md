@@ -8,6 +8,8 @@ This folder contains a standalone FiveM extraction prototype. The current goal i
   Shared item registry with tetris metadata and future container templates.
 - `extraction_core`
   Modular v2 foundation: shared config, constants, logging, player identifiers, and routing bucket allocation.
+- `extraction_admin`
+  Project-specific admin helpers. Current commands: `/copycoords`, `/coords`, `/coords vec4`, and `/coords table`. Access is gated by the same `easyadmin` ACE permission as EasyAdmin.
 - `standalone_extraction`
   Core raid loop, player profiles, stash persistence, extraction routes, raid vehicles, starter kit, and routing buckets.
 - `extraction_world`
@@ -38,8 +40,8 @@ Third-party dependencies are kept outside this folder in `resources/[overextende
 
 Admin tooling is kept outside this folder in `resources/[admin]`:
 
-- `dam`
-  Standalone drawn admin menu. It requires `oxmysql`, ACE permissions, and a valid `mysql_connection_string` before enabling. Local project patch: permissions are enabled, and revive/kill hooks use standalone FiveM client events instead of framework exports. See `docs/DAM_ADMIN_MENU.md`.
+- `EasyAdmin`
+  Standalone admin menu. It is enabled in `server.cfg`, uses ACE permissions, and opens with `/easyadmin` or F7. See `docs/EASYADMIN_SETUP.md`.
 
 ## Current Design
 
@@ -52,7 +54,7 @@ Admin tooling is kept outside this folder in `resources/[admin]`:
 - Lobby settings are currently client-side KVP preferences. `extraction_lobby` sends updates through `extraction_hud:client:setSettings`.
 - Extraction points should remain believable city exits such as tunnels, channels, highway ramps, ferry/boat ramps, rail exits, and service gates. Do not place extracts directly beside loot clusters unless the encounter is intentionally balanced around that risk.
 - `ox_lib` is enabled. `oxmysql` and `ox_inventory` are downloaded into `resources/[overextended]` but intentionally not auto-started yet.
-- DAM is downloaded into `resources/[admin]/dam` but intentionally not auto-started until MySQL is configured.
+- EasyAdmin is downloaded into `resources/[admin]/EasyAdmin` and enabled as the current admin menu.
 - User-facing text and documentation should stay in English for easier external collaboration.
 - Internal item keys should remain stable because saved player data references them.
 
