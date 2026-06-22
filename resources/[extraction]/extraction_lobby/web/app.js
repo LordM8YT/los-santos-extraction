@@ -710,6 +710,12 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  if (action === "logout") {
+    showToast("Logging out from safehouse...");
+    post("logout");
+    return;
+  }
+
   if (action === "startRaid") {
     deployLocked = true;
     if (deployButton) {
@@ -760,16 +766,16 @@ if (new URLSearchParams(window.location.search).has("demo")) {
       raidActive: false,
       trader: {
         items: [
-          { item: "pistol", label: "Pistol", category: "Weapon", description: "Reliable sidearm.", price: 650, quantity: 1, owned: 1, limit: 1, image: "weapon_pistol.png", type: "weapon" },
-          { item: "pistol_ammo", label: "9mm Ammo Pack", category: "Ammo", description: "Twenty-four rounds.", price: 120, quantity: 24, owned: 48, limit: 240, image: "ammo-9.png", type: "ammo" },
-          { item: "meds", label: "Medical Supplies", category: "Medical", description: "Basic field supplies.", price: 320, quantity: 1, owned: 4, limit: 10, image: "medikit.png", type: "loot" },
+          { item: "pistol", label: "Pistol", category: "Weapon", description: "Reliable sidearm.", price: 650, quantity: 1, owned: 1, limit: 1, image: "lsx_pistol.png", type: "weapon" },
+          { item: "pistol_ammo", label: "9mm Ammo Pack", category: "Ammo", description: "Twenty-four rounds.", price: 120, quantity: 24, owned: 48, limit: 240, image: "lsx_pistol_ammo.png", type: "ammo" },
+          { item: "meds", label: "Medical Supplies", category: "Medical", description: "Basic field supplies.", price: 320, quantity: 1, owned: 4, limit: 10, image: "lsx_meds.png", type: "loot" },
         ],
       },
       stash: [
-        { label: "Military Circuit", count: 2, value: 900, weight: 90, type: "loot", image: "electronics.svg" },
-        { label: "Medical Supplies", count: 4, value: 350, weight: 70, type: "loot", image: "medikit.png" },
-        { label: "Pistol", count: 1, value: 0, weight: 650, type: "weapon", image: "weapon_pistol.png", width: 2, height: 1 },
-        { label: "9mm Ammo", count: 48, value: 0, weight: 8, type: "ammo", image: "ammo-9.png" },
+        { label: "Military Circuit", count: 2, value: 900, weight: 90, type: "loot", image: "lsx_electronics.png" },
+        { label: "Medical Supplies", count: 4, value: 350, weight: 70, type: "loot", image: "lsx_meds.png" },
+        { label: "Pistol", count: 1, value: 0, weight: 650, type: "weapon", image: "lsx_pistol.png", width: 2, height: 1 },
+        { label: "9mm Ammo", count: 48, value: 0, weight: 8, type: "ammo", image: "lsx_pistol_ammo.png" },
       ],
     },
   });

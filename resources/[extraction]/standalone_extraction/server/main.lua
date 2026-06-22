@@ -1568,6 +1568,18 @@ RegisterNetEvent('standalone_extraction:server:requestInventory', function(openU
     sendInventorySnapshot(source, openUi ~= false)
 end)
 
+RegisterNetEvent('standalone_extraction:server:logout', function()
+    local source = source
+
+    if getRaid(source) then
+        notify(source, 'Extract or die before logging out.')
+        TriggerClientEvent('extraction_lobby:client:update', source, buildProfileSnapshot(source))
+        return
+    end
+
+    DropPlayer(source, 'Logged out from Los Santos Extraction.')
+end)
+
 RegisterCommand('lsx_fixkit', function(source, args)
     if source ~= 0 and not IsPlayerAceAllowed(source, 'command.lsx_fixkit') then
         notify(source, 'You do not have permission to repair starter kits.')

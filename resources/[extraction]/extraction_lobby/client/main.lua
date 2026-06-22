@@ -167,6 +167,12 @@ RegisterNUICallback('startRaid', function(_, cb)
     cb({ ok = true })
 end)
 
+RegisterNUICallback('logout', function(_, cb)
+    closeUi()
+    TriggerServerEvent('standalone_extraction:server:logout')
+    cb({ ok = true })
+end)
+
 RegisterNUICallback('openInventory', function(_, cb)
     send('setView', { view = 'loadout' })
     requestSnapshot()
