@@ -8,6 +8,8 @@ version '1.0.0'
 
 file 'style.css'
 
+client_script 'client.lua'
+
 chat_theme 'extraction' {
     styleSheet = 'style.css',
     msgTemplates = {

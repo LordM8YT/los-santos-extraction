@@ -94,15 +94,25 @@ textarea {
   background: var(--extract-panel) !important;
   border: 1px solid var(--extract-line) !important;
   border-radius: 10px !important;
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.34) !important;
 }
 
 .suggestion {
-  padding: 6px 8px !important;
+  padding: 7px 9px !important;
   border-radius: 7px !important;
+  border: 1px solid transparent !important;
+}
+
+.suggestion.selected,
+.suggestion:hover {
+  background: rgba(139, 209, 124, 0.12) !important;
+  border-color: rgba(139, 209, 124, 0.22) !important;
 }
 
 .suggestion p {
   color: var(--extract-green) !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.03em !important;
 }
 
 .help {
