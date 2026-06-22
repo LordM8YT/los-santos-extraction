@@ -49,6 +49,7 @@ const gearSlot = document.getElementById("gearSlot");
 const kitSummary = document.getElementById("kitSummary");
 const carryEstimate = document.getElementById("carryEstimate");
 const deploymentRisk = document.getElementById("deploymentRisk");
+const traderItems = document.getElementById("traderItems");
 
 let currentSnapshot = null;
 let currentView = "deploy";
@@ -121,6 +122,9 @@ function fallbackSnapshot() {
     stashValue: 0,
     stash: [],
     carry: [],
+    trader: {
+      items: [],
+    },
     raidActive: false,
     canSell: false,
     loading: true,
@@ -534,6 +538,50 @@ function renderReadiness(snapshot, sellableStash, loadout) {
   setHtml(stats, `${stats?.innerHTML || ""}<div class="stat progress-stat"><span class="stat-label">Next Level</span><span class="stat-value">${formatNumber(nextLevelXp)} XP</span><i style="width:${clamp(levelProgress, 0, 100)}%"></i></div>`);
 }
 
+function renderTrader(snapshot) {
+  if (!traderItems) {
+    return;
+  }
+
+  const offers = snapshot.trader?.items || [];
+
+  if (offers.length === 0) {
+    setHtml(traderItems, `<div class="empty">Trader catalog unavailable. Make sure extraction_traders is started.</div>`);
+    return;
+  }
+
+  setHtml(traderItems, offers
+    .map((offer) => {
+      const image = getItemImage(offer);
+      const fallback = escapeHtml((offer.label || offer.item || "?").slice(0, 2).toUpperCase());
+      const price = Number(offer.price || 0);
+      const owned = Number(offer.owned || 0);
+      const limit = Number(offer.limit || 0);
+      const quantity = Number(offer.quantity || 1);
+      const canBuy = !snapshot.raidActive && Number(snapshot.cash || 0) >= price && (limit <= 0 || owned + quantity <= limit);
+
+      return `
+        <article class="trader-offer" data-rarity="${escapeHtml(offer.type || "loot")}">
+          <div class="trader-art">
+            ${image ? `<img src="${escapeHtml(image)}" alt="" onerror="this.classList.add('is-missing')" />` : ""}
+            <span>${fallback}</span>
+          </div>
+          <div class="trader-copy">
+            <span>${escapeHtml(offer.category || "Gear")}</span>
+            <strong>${escapeHtml(offer.label || offer.item)}</strong>
+            <em>${escapeHtml(offer.description || "")}</em>
+          </div>
+          <div class="trader-meta">
+            <span>$${formatNumber(price)} / ${formatNumber(quantity)}x</span>
+            <strong>Owned ${formatNumber(owned)}${limit > 0 ? ` / ${formatNumber(limit)}` : ""}</strong>
+          </div>
+          <button data-action="buyTraderItem" data-item="${escapeHtml(offer.item)}" data-qty="1" ${canBuy ? "" : "disabled"} type="button">Buy</button>
+        </article>
+      `;
+    })
+    .join(""));
+}
+
 function render(snapshot) {
   snapshot = snapshot || fallbackSnapshot();
   currentSnapshot = snapshot;
@@ -555,6 +603,7 @@ function render(snapshot) {
   renderList(loadoutPreview, loadout, "No loadout items in stash", snapshot.containers?.loadout);
   renderLoadoutSlots(snapshot, loadout);
   renderReadiness(snapshot, sellableStash, loadout);
+  renderTrader(snapshot);
 
   setText(stashMeta, `${formatNumber(totalStashItems)} items / $${formatNumber(snapshot.stashValue)}`);
   setText(loadoutMeta, loadout.length > 0 ? `${formatNumber(loadout.length)} item types` : "Empty");
@@ -648,6 +697,19 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  if (action === "buyTraderItem") {
+    const button = event.target?.closest("[data-item]");
+    const itemName = button?.dataset?.item;
+    const quantity = Number(button?.dataset?.qty || 1);
+
+    if (itemName) {
+      showToast("Purchasing gear...");
+      post("buyTraderItem", { itemName, quantity });
+    }
+
+    return;
+  }
+
   if (action === "startRaid") {
     deployLocked = true;
     if (deployButton) {
@@ -696,6 +758,13 @@ if (new URLSearchParams(window.location.search).has("demo")) {
       stashValue: 4200,
       canSell: true,
       raidActive: false,
+      trader: {
+        items: [
+          { item: "pistol", label: "Pistol", category: "Weapon", description: "Reliable sidearm.", price: 650, quantity: 1, owned: 1, limit: 1, image: "weapon_pistol.png", type: "weapon" },
+          { item: "pistol_ammo", label: "9mm Ammo Pack", category: "Ammo", description: "Twenty-four rounds.", price: 120, quantity: 24, owned: 48, limit: 240, image: "ammo-9.png", type: "ammo" },
+          { item: "meds", label: "Medical Supplies", category: "Medical", description: "Basic field supplies.", price: 320, quantity: 1, owned: 4, limit: 10, image: "medikit.png", type: "loot" },
+        ],
+      },
       stash: [
         { label: "Military Circuit", count: 2, value: 900, weight: 90, type: "loot", image: "electronics.svg" },
         { label: "Medical Supplies", count: 4, value: 350, weight: 70, type: "loot", image: "medikit.png" },

@@ -890,6 +890,125 @@ dd { margin: 0; color: var(--paper); }
   box-shadow: 0 0 14px rgba(212, 176, 106, 0.28);
   transition: width 180ms ease;
 }
+.trader-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(360px, 1fr) 220px;
+  gap: 10px;
+}
+.trader-sell-card {
+  min-height: 100%;
+}
+.trader-items {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.trader-offer,
+.trader-intel {
+  position: relative;
+  min-height: 132px;
+  padding: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(238, 225, 190, 0.13);
+  background:
+    radial-gradient(circle at 70% 10%, rgba(241, 207, 130, 0.13), transparent 36%),
+    rgba(238, 225, 190, 0.045);
+}
+.trader-offer {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  grid-template-rows: 1fr auto;
+  gap: 8px;
+}
+.trader-offer[data-rarity="weapon"] { border-color: rgba(197, 45, 36, 0.5); }
+.trader-offer[data-rarity="ammo"] { border-color: rgba(123, 185, 198, 0.42); }
+.trader-art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border: 1px solid rgba(238, 225, 190, 0.14);
+  background: rgba(0, 0, 0, 0.3);
+}
+.trader-art img {
+  max-width: 92%;
+  max-height: 92%;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.55));
+}
+.trader-art img.is-missing { display: none; }
+.trader-art span {
+  position: absolute;
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 900;
+}
+.trader-art img:not(.is-missing) + span { opacity: 0; }
+.trader-copy {
+  min-width: 0;
+}
+.trader-copy span,
+.trader-intel span {
+  color: var(--gold);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+.trader-copy strong,
+.trader-intel strong {
+  display: block;
+  margin-top: 5px;
+  overflow: hidden;
+  color: var(--paper);
+  font-size: 19px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.trader-copy em,
+.trader-intel em {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  font-style: normal;
+  line-height: 1.24;
+}
+.trader-meta {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-right: 58px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.trader-meta strong {
+  color: var(--cyan);
+  text-align: right;
+}
+.trader-offer button {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  min-height: 28px;
+  padding: 0 12px;
+  border: 1px solid rgba(152, 200, 143, 0.45);
+  color: #eaffdf;
+  background: rgba(152, 200, 143, 0.12);
+  cursor: pointer;
+}
+.trader-offer button:disabled {
+  cursor: not-allowed;
+  opacity: 0.38;
+}
+.trader-intel {
+  background:
+    linear-gradient(90deg, rgba(123, 185, 198, 0.12), transparent 2px),
+    rgba(238, 225, 190, 0.04);
+}
 .party-panel { display: grid; grid-template-columns: 1fr 260px; gap: 10px; padding: 13px; }
 .party-panel h3 { margin: 0; font-size: 24px; }
 .party-panel p { color: #c7bea4; }
@@ -1002,6 +1121,7 @@ kbd { margin-right: 6px; padding: 2px 6px; border: 1px solid rgba(238, 225, 190,
   .operator-stage { min-height: 520px; }
   .view-dock { position: relative; left: auto; right: auto; bottom: auto; margin: 0 18px 58px; }
   .armory-layout { grid-template-columns: 1fr; }
+  .trader-layout { grid-template-columns: 1fr; }
   .footer-actions { position: fixed; }
 }
 
@@ -1012,6 +1132,7 @@ kbd { margin-right: 6px; padding: 2px 6px; border: 1px solid rgba(238, 225, 190,
   .crate-grid,
   .inventory-preview,
   .mission-board,
+  .trader-items,
   .party-panel { grid-template-columns: 1fr; }
   .operator-left,
   .operator-right { display: none; }

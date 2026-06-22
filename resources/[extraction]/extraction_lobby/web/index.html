@@ -227,17 +227,18 @@
           </section>
 
           <section class="view-panel" data-panel="trader">
-            <div class="action-grid two">
-              <button class="feature-card" data-action="sellLoot" type="button">
+            <div class="trader-layout">
+              <button class="feature-card trader-sell-card" data-action="sellLoot" type="button">
                 <span>Available</span>
                 <strong>Sell Secured Loot</strong>
-                <em>Convert extracted valuables into cash.</em>
+                <em>Convert extracted valuables into cash before buying the next kit.</em>
               </button>
-              <button class="feature-card locked" data-coming-soon="Trader shop" type="button">
-                <span>Coming Soon</span>
-                <strong>Buy Gear</strong>
-                <em>Weapons, ammo, armor and meds will live here.</em>
-              </button>
+              <div id="traderItems" class="trader-items" aria-label="Trader inventory"></div>
+              <article class="trader-intel">
+                <span>Quartermaster Rule</span>
+                <strong>Cash only. Safehouse only.</strong>
+                <em>Purchased gear goes to stash and can be lost if deployed into a raid.</em>
+              </article>
             </div>
           </section>
 

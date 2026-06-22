@@ -184,6 +184,19 @@ RegisterNUICallback('sellLoot', function(_, cb)
     cb({ ok = true })
 end)
 
+RegisterNUICallback('buyTraderItem', function(data, cb)
+    if data and data.itemName then
+        TriggerServerEvent('standalone_extraction:server:buyTraderItem', data.itemName, data.quantity or 1)
+
+        CreateThread(function()
+            Wait(350)
+            requestSnapshot()
+        end)
+    end
+
+    cb({ ok = true })
+end)
+
 RegisterNUICallback('claimQuest', function(data, cb)
     if data and data.questId then
         TriggerServerEvent('standalone_extraction:server:claimQuestReward', data.questId)

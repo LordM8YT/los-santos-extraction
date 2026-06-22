@@ -357,6 +357,64 @@ local function buildQuestSnapshots(profile)
     return quests
 end
 
+local function getTraderCatalog()
+    if GetResourceState('extraction_traders') ~= 'started' then
+        return {}
+    end
+
+    local shopItems = exports.extraction_traders:GetShopItems('quartermaster')
+    if type(shopItems) ~= 'table' then
+        return {}
+    end
+
+    local catalog = {}
+
+    for _, offer in ipairs(shopItems) do
+        local itemName = offer.item
+        local itemData = Config.Items[itemName]
+
+        if itemData then
+            local metadata = getItemMetadata(itemName)
+
+            catalog[#catalog + 1] = {
+                item = itemName,
+                label = offer.label or itemData.label,
+                category = offer.category or itemData.type or 'Gear',
+                description = offer.description or itemData.label,
+                price = math.max(0, math.floor(tonumber(offer.price) or 0)),
+                quantity = math.max(1, math.floor(tonumber(offer.quantity) or 1)),
+                limit = math.max(0, math.floor(tonumber(offer.limit) or 0)),
+                owned = 0,
+                image = metadata.image,
+                type = itemData.type or 'loot',
+                weight = itemData.weight,
+                value = itemData.value,
+            }
+        end
+    end
+
+    return catalog
+end
+
+local function getTraderOffer(itemName)
+    if GetResourceState('extraction_traders') ~= 'started' then
+        return nil
+    end
+
+    local shopItems = exports.extraction_traders:GetShopItems('quartermaster')
+    if type(shopItems) ~= 'table' then
+        return nil
+    end
+
+    for _, offer in ipairs(shopItems) do
+        if offer.item == itemName then
+            return offer
+        end
+    end
+
+    return nil
+end
+
 local function getQuestDefinition(questId)
     for _, quest in ipairs(QUEST_DEFINITIONS) do
         if quest.id == questId then
@@ -376,6 +434,11 @@ local function buildProfileSnapshot(source)
     local raid = activeRaids[source]
     local carryLoot = raid and raid.carry or newLootBag()
     local sellDistance = isPlayerNear(source, Config.Lobby.trader.coords, Config.ValidationDistance + 2.0)
+    local traderCatalog = getTraderCatalog()
+
+    for _, offer in ipairs(traderCatalog) do
+        offer.owned = tonumber(profile.stash[offer.item]) or 0
+    end
 
     return {
         cash = profile.cash,
@@ -397,6 +460,10 @@ local function buildProfileSnapshot(source)
             stash = getContainerTemplate('stash_basic', { label = 'Basic Stash', width = 10, height = 20 }),
             raidBag = getContainerTemplate('raid_bag_basic', { label = 'Field Bag', width = 5, height = 6 }),
             loadout = getContainerTemplate('loadout', { label = 'Loadout', width = 6, height = 4 }),
+        },
+        trader = {
+            label = 'Quartermaster',
+            items = traderCatalog,
         },
         raidActive = raid ~= nil,
         canSell = sellDistance and raid == nil,
@@ -1327,6 +1394,52 @@ RegisterNetEvent('standalone_extraction:server:sellSecuredLoot', function()
 
     notify(source, ('You sold secured loot for $%s.'):format(stashValue))
     TriggerClientEvent('standalone_extraction:client:showProfile', source, buildProfileSnapshot(source))
+    sendInventorySnapshot(source, false)
+end)
+
+RegisterNetEvent('standalone_extraction:server:buyTraderItem', function(itemName, quantity)
+    local source = source
+
+    if getRaid(source) then
+        notify(source, 'You cannot buy gear while you are in a raid.')
+        return
+    end
+
+    local profile = getProfile(source)
+    local itemData = Config.Items[itemName]
+    local offer = getTraderOffer(itemName)
+
+    if not profile or not itemData or not offer then
+        return
+    end
+
+    quantity = math.max(1, math.min(10, math.floor(tonumber(quantity) or 1)))
+
+    local stackAmount = math.max(1, math.floor(tonumber(offer.quantity) or 1))
+    local price = math.max(0, math.floor(tonumber(offer.price) or 0))
+    local totalCost = price * quantity
+    local totalItems = stackAmount * quantity
+    local limit = math.max(0, math.floor(tonumber(offer.limit) or 0))
+    local current = tonumber(profile.stash[itemName]) or 0
+
+    if limit > 0 and current + totalItems > limit then
+        notify(source, ('Quartermaster limit reached for %s.'):format(itemData.label))
+        TriggerClientEvent('extraction_lobby:client:update', source, buildProfileSnapshot(source))
+        return
+    end
+
+    if profile.cash < totalCost then
+        notify(source, 'Not enough cash for this purchase.')
+        TriggerClientEvent('extraction_lobby:client:update', source, buildProfileSnapshot(source))
+        return
+    end
+
+    profile.cash = profile.cash - totalCost
+    profile.stash[itemName] = current + totalItems
+    saveProfiles()
+
+    notify(source, ('Purchased %sx %s for $%s.'):format(totalItems, itemData.label, totalCost))
+    TriggerClientEvent('extraction_lobby:client:update', source, buildProfileSnapshot(source))
     sendInventorySnapshot(source, false)
 end)
 

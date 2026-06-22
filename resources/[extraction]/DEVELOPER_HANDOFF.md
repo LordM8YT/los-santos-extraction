@@ -6,6 +6,8 @@ This folder contains a standalone FiveM extraction prototype. The current goal i
 
 - `extraction_items`
   Shared item registry with tetris metadata and future container templates.
+- `extraction_traders`
+  Standalone trader catalog. Start before `standalone_extraction`; purchases are still validated and applied by `standalone_extraction`.
 - `extraction_core`
   Modular v2 foundation: shared config, constants, logging, player identifiers, and routing bucket allocation.
 - `extraction_admin`
@@ -51,6 +53,7 @@ Admin tooling is kept outside this folder in `resources/[admin]`:
 - Inventory is custom and standalone for now. `extraction_items` is the new shared registry for the future tetris inventory migration.
 - Inventory UI now renders a visual tetris/grid layout in both the lobby armory and raid inventory. Item placement is still derived client-side from item dimensions/count snapshots; server-authoritative drag/drop placement is not implemented yet.
 - Quest rewards are currently handled in `standalone_extraction` as a small profile-backed prototype. Claimed quest IDs are stored on the player profile in `questClaims`.
+- Trader catalog data lives in `extraction_traders`; player cash/stash mutations stay server-authoritative in `standalone_extraction`.
 - Safehouse inventory is integrated into `extraction_lobby`. `extraction_inventory` is the separate field inventory used while in raid.
 - Initial join uses lobby staging: the player ped is hidden/frozen behind the lobby UI and should not become playable until raid start.
 - Lobby settings are currently client-side KVP preferences. `extraction_lobby` sends updates through `extraction_hud:client:setSettings`.
@@ -62,7 +65,7 @@ Admin tooling is kept outside this folder in `resources/[admin]`:
 
 ## Planned Systems
 
-- Trader shop for weapons, ammo, armor, and meds.
+- Expanded trader shop with armor, backpacks, meds, price balancing, reputation and unlock tiers.
 - `extraction_player` resource for profile/progression persistence.
 - Character creator UI and persistence on top of `extraction_character`.
 - Quest/task system with cash, XP, and item rewards.
