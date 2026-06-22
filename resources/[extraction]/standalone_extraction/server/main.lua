@@ -127,6 +127,30 @@ local function grantStarterKit(profile)
     return changed
 end
 
+local function grantStarterLoadout(profile)
+    local starterKit = Config.StarterKit
+    if not profile or not starterKit or not starterKit.enabled then
+        return false
+    end
+
+    local changed = false
+
+    for itemName, count in pairs(starterKit.stash or {}) do
+        local itemData = Config.Items[itemName]
+        if itemData and (itemData.type == 'weapon' or itemData.type == 'ammo') then
+            local current = tonumber(profile.stash[itemName]) or 0
+            local minimum = tonumber(count) or 0
+
+            if minimum > 0 and current < minimum then
+                profile.stash[itemName] = minimum
+                changed = true
+            end
+        end
+    end
+
+    return changed
+end
+
 local function ensureProfileShape(profile)
     profile.cash = tonumber(profile.cash) or 0
     profile.xp = tonumber(profile.xp) or 0
@@ -1370,6 +1394,43 @@ RegisterNetEvent('standalone_extraction:server:requestInventory', function(openU
     local source = source
     sendInventorySnapshot(source, openUi ~= false)
 end)
+
+RegisterCommand('lsx_fixkit', function(source, args)
+    if source ~= 0 and not IsPlayerAceAllowed(source, 'command.lsx_fixkit') then
+        notify(source, 'You do not have permission to repair starter kits.')
+        return
+    end
+
+    local target = tonumber(args[1]) or source
+    if target == 0 or not GetPlayerName(target) then
+        print('[standalone_extraction] Usage: lsx_fixkit <server id>')
+        return
+    end
+
+    if getRaid(target) then
+        if source == 0 then
+            print(('[standalone_extraction] Cannot repair kit for %s while they are in a raid.'):format(GetPlayerName(target)))
+        else
+            notify(source, 'Starter kit repair can only be used from the safehouse.')
+        end
+        return
+    end
+
+    local profile = getProfile(target)
+    if not profile then
+        return
+    end
+
+    if grantStarterLoadout(profile) then
+        saveProfiles()
+        notify(target, 'Starter loadout repaired: pistol and ammo restored.')
+        TriggerClientEvent('extraction_lobby:client:update', target, buildProfileSnapshot(target))
+        sendInventorySnapshot(target, false)
+        print(('[standalone_extraction] Repaired starter loadout for %s.'):format(GetPlayerName(target)))
+    else
+        notify(target, 'Starter loadout already has the minimum pistol and ammo.')
+    end
+end, false)
 
 RegisterNetEvent('standalone_extraction:server:discardCarryItem', function(itemName, amount)
     local source = source
