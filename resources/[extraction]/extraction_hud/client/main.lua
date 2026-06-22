@@ -77,7 +77,7 @@ local function applyClientSettings(settings)
     send('settings', hudSettings)
 end
 
-local function shouldShowRadar()
+local function shouldShowCustomMinimap()
     local config = ExtractionHudConfig and ExtractionHudConfig.Minimap or {}
 
     if config.enabled == false then
@@ -101,6 +101,16 @@ local function shouldShowRadar()
     end
 
     return config.showOnFoot == true
+end
+
+local function shouldShowNativeRadar()
+    local config = ExtractionHudConfig and ExtractionHudConfig.Minimap or {}
+
+    if config.useNativeRadar ~= true then
+        return false
+    end
+
+    return shouldShowCustomMinimap()
 end
 
 local function applyMinimapCleanup(showRadar)
@@ -144,6 +154,7 @@ local function getHeadingCardinal(heading)
 end
 
 local function getPlayerStatus()
+    local config = ExtractionHudConfig and ExtractionHudConfig.Minimap or {}
     local ped = PlayerPedId()
     local coords = GetEntityCoords(ped)
     local streetHash, crossingHash = GetStreetNameAtCoord(coords.x, coords.y, coords.z)
@@ -165,6 +176,14 @@ local function getPlayerStatus()
         location = streetName ~= '' and streetName or 'Unknown Sector',
         crossing = crossingName,
         inVehicle = IsPedInAnyVehicle(ped, false),
+        speed = math.floor(GetEntitySpeed(ped) * 3.6),
+        coords = {
+            x = math.floor(coords.x),
+            y = math.floor(coords.y),
+            z = math.floor(coords.z),
+        },
+        minimapVisible = shouldShowCustomMinimap(),
+        minimapRangeMeters = config.scannerRangeMeters or 220,
     }
 end
 
@@ -281,7 +300,7 @@ CreateThread(function()
             HudWeaponWheelIgnoreSelection()
         end
 
-        applyMinimapCleanup(shouldShowRadar())
+        applyMinimapCleanup(shouldShowNativeRadar())
 
         Wait(0)
     end

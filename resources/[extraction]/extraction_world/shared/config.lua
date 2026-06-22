@@ -10,6 +10,57 @@ WorldConfig.TierColors = {
     high = { r = 255, g = 95, b = 95, a = 155 },
 }
 
+WorldConfig.LootZones = {
+    {
+        id = 'airport_logistics',
+        label = 'Airport Logistics',
+        tier = 'low',
+        center = vec3(-1008.0, -2815.0, 13.9),
+        radius = 520.0,
+        intel = 'Light industrial scavenging',
+    },
+    {
+        id = 'cypress_freight',
+        label = 'Cypress Freight Belt',
+        tier = 'mid',
+        center = vec3(900.0, -2300.0, 30.0),
+        radius = 620.0,
+        intel = 'Freight yards and warehouse caches',
+    },
+    {
+        id = 'terminal_docks',
+        label = 'Terminal Docks',
+        tier = 'mid',
+        center = vec3(1050.0, -3020.0, 6.0),
+        radius = 620.0,
+        intel = 'Container lanes and smuggler cargo',
+    },
+    {
+        id = 'city_commercial',
+        label = 'Central Commercial Strip',
+        tier = 'low',
+        center = vec3(140.0, -950.0, 30.0),
+        radius = 780.0,
+        intel = 'Stores, clinics and offices',
+    },
+    {
+        id = 'guarded_blacksite',
+        label = 'Guarded Blacksite Activity',
+        tier = 'high',
+        center = vec3(930.0, -2600.0, 25.0),
+        radius = 760.0,
+        intel = 'High value caches, hostile security likely',
+    },
+    {
+        id = 'east_industrial',
+        label = 'East Industrial Patrols',
+        tier = 'high',
+        center = vec3(1450.0, -1850.0, 60.0),
+        radius = 620.0,
+        intel = 'Militia outposts and oilfield equipment',
+    },
+}
+
 WorldConfig.LootSpots = {
     {
         id = 'airport_cargo_1',

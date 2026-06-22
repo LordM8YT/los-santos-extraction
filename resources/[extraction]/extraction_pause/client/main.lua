@@ -1,11 +1,81 @@
 local uiOpen = false
 local raidActive = false
+local currentView = 'menu'
+local activeExtractions = {}
+local lootZones = {}
+
+local mapBounds = {
+    minX = -2800.0,
+    maxX = 1900.0,
+    minY = -3900.0,
+    maxY = 1600.0,
+}
 
 local function send(action, payload)
     SendNUIMessage({
         action = action,
         payload = payload or {}
     })
+end
+
+local function coordsToPayload(coords)
+    if type(coords) ~= 'vector3' and type(coords) ~= 'vector4' and type(coords) ~= 'table' then
+        return nil
+    end
+
+    return {
+        x = coords.x,
+        y = coords.y,
+        z = coords.z,
+    }
+end
+
+local function normalizeExtractions(extractions)
+    local normalized = {}
+
+    for _, point in ipairs(extractions or {}) do
+        local coords = coordsToPayload(point.coords)
+
+        if coords then
+            normalized[#normalized + 1] = {
+                id = point.id or ('extract_' .. (#normalized + 1)),
+                label = point.label or 'Extraction',
+                coords = coords,
+            }
+        end
+    end
+
+    return normalized
+end
+
+local function normalizeLootZones(zones)
+    local normalized = {}
+
+    for _, zone in ipairs(zones or {}) do
+        local center = coordsToPayload(zone.center)
+
+        if center then
+            normalized[#normalized + 1] = {
+                id = zone.id or ('loot_zone_' .. (#normalized + 1)),
+                label = zone.label or 'Loot Zone',
+                tier = zone.tier or 'low',
+                radius = zone.radius or 350.0,
+                intel = zone.intel or '',
+                center = center,
+            }
+        end
+    end
+
+    return normalized
+end
+
+local function refreshLootZones()
+    if GetResourceState('extraction_world') ~= 'started' then
+        lootZones = {}
+        return
+    end
+
+    lootZones = normalizeLootZones(exports.extraction_world:GetLootZones() or {})
 end
 
 local function closePause()
@@ -15,24 +85,77 @@ local function closePause()
     send('close')
 end
 
-local function openPause()
+local function getMapPayload()
+    local ped = PlayerPedId()
+    local coords = GetEntityCoords(ped)
+    local heading = GetEntityHeading(ped)
+    local streetHash, crossingHash = GetStreetNameAtCoord(coords.x, coords.y, coords.z)
+    local streetName = GetStreetNameFromHashKey(streetHash) or ''
+    local crossingName = crossingHash and crossingHash ~= 0 and (GetStreetNameFromHashKey(crossingHash) or '') or ''
+
+    return {
+        raidActive = raidActive,
+        bounds = mapBounds,
+        extractions = raidActive and activeExtractions or {},
+        lootZones = raidActive and lootZones or {},
+        player = {
+            x = coords.x,
+            y = coords.y,
+            z = coords.z,
+            heading = heading,
+            speed = math.floor(GetEntitySpeed(ped) * 3.6),
+            location = streetName ~= '' and streetName or 'Unknown Sector',
+            crossing = crossingName,
+        }
+    }
+end
+
+local function sendMapData()
+    send('mapData', getMapPayload())
+end
+
+local function openPause(view)
     if uiOpen then
+        currentView = view or currentView
+        send('setView', { view = currentView })
+        sendMapData()
         return
     end
 
     uiOpen = true
+    currentView = view or 'menu'
     SetPauseMenuActive(false)
     SetNuiFocus(true, true)
     SetNuiFocusKeepInput(false)
-    send('open')
+    send('open', {
+        view = currentView,
+        map = getMapPayload(),
+    })
 end
 
 RegisterCommand('extractionpause', function()
-    openPause()
+    openPause('menu')
 end, false)
+
+RegisterCommand('extractionmap', function()
+    openPause('map')
+end, false)
+
+RegisterKeyMapping('extractionmap', 'Open LSX tactical map', 'keyboard', 'M')
 
 RegisterNUICallback('close', function(_, cb)
     closePause()
+    cb({ ok = true })
+end)
+
+RegisterNUICallback('setView', function(data, cb)
+    currentView = data and data.view or 'menu'
+    send('setView', { view = currentView })
+
+    if currentView == 'map' then
+        sendMapData()
+    end
+
     cb({ ok = true })
 end)
 
@@ -60,13 +183,22 @@ RegisterNUICallback('leaveRaid', function(_, cb)
     cb({ ok = true })
 end)
 
-RegisterNetEvent('standalone_extraction:client:startRaid', function()
+RegisterNetEvent('standalone_extraction:client:startRaid', function(payload)
     raidActive = true
+    activeExtractions = normalizeExtractions(payload and payload.extractions or {})
+    refreshLootZones()
 end)
 
 RegisterNetEvent('standalone_extraction:client:endRaid', function()
     raidActive = false
+    activeExtractions = {}
     closePause()
+end)
+
+AddEventHandler('onClientResourceStart', function(resourceName)
+    if resourceName == 'extraction_world' then
+        refreshLootZones()
+    end
 end)
 
 AddEventHandler('onResourceStop', function(resourceName)
@@ -77,6 +209,7 @@ end)
 
 CreateThread(function()
     closePause()
+    refreshLootZones()
 
     while true do
         DisableControlAction(0, 199, true) -- Pause menu
@@ -87,7 +220,7 @@ CreateThread(function()
             if uiOpen then
                 closePause()
             else
-                openPause()
+                openPause('menu')
             end
         end
 
@@ -96,5 +229,16 @@ CreateThread(function()
         end
 
         Wait(0)
+    end
+end)
+
+CreateThread(function()
+    while true do
+        if uiOpen and currentView == 'map' then
+            sendMapData()
+            Wait(500)
+        else
+            Wait(1000)
+        end
     end
 end)

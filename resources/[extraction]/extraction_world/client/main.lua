@@ -182,6 +182,10 @@ exports('GetLootSpots', function()
     return WorldConfig.LootSpots
 end)
 
+exports('GetLootZones', function()
+    return WorldConfig.LootZones or {}
+end)
+
 exports('GetLootSpot', function(spotId)
     return lootSpotsById[spotId]
 end)

@@ -9,24 +9,58 @@
   <body>
     <main id="app" class="app" aria-hidden="true">
       <section class="pause-shell" aria-label="Extraction pause menu">
-        <div>
-          <p class="eyebrow">Session Paused</p>
-          <h1>Operations Menu</h1>
-          <p class="copy">Native GTA pause and map are disabled. Use LSX systems for loadout, raid control and tactical navigation.</p>
+        <div class="pause-topline">
+          <div>
+            <p class="eyebrow">Session Paused</p>
+            <h1>Operations Menu</h1>
+            <p class="copy">Native GTA pause and map are disabled. Use LSX systems for loadout, raid control and tactical navigation.</p>
+          </div>
+          <div class="view-tabs" aria-label="Pause views">
+            <button data-action="setView" data-view="menu" type="button">Ops</button>
+            <button data-action="setView" data-view="map" type="button">Map</button>
+          </div>
         </div>
 
-        <nav class="pause-actions">
+        <nav id="menuView" class="pause-actions">
           <button data-action="close" type="button"><span>Esc</span><strong>Resume</strong></button>
           <button data-action="openLobby" type="button"><span>Hub</span><strong>Open Lobby</strong></button>
           <button data-action="openInventory" type="button"><span>Kit</span><strong>Loadout / Field Bag</strong></button>
           <button data-action="leaveRaid" type="button"><span>Raid</span><strong>Leave Raid</strong></button>
-          <button data-action="soon" data-label="Tactical map" type="button"><span>Map</span><strong>Tactical Map Soon</strong></button>
+          <button data-action="setView" data-view="map" type="button"><span>M</span><strong>Tactical Map</strong></button>
           <button data-action="soon" data-label="Settings" type="button"><span>Cfg</span><strong>Settings Soon</strong></button>
         </nav>
 
+        <section id="mapView" class="tactical-map hidden" aria-label="Tactical map">
+          <div class="map-copy">
+            <p class="eyebrow">Tactical Map</p>
+            <h2>Los Santos AO</h2>
+            <p id="mapLocation">Unknown Sector</p>
+          </div>
+          <div id="mapGrid" class="map-grid">
+            <div class="map-city-shape"></div>
+            <div class="map-road arterial-a"></div>
+            <div class="map-road arterial-b"></div>
+            <div class="map-road arterial-c"></div>
+            <div id="mapLootZones" class="map-layer loot-zones"></div>
+            <div id="mapExtractions" class="map-layer extraction-layer"></div>
+            <div id="playerMarker" class="player-marker">
+              <span></span>
+            </div>
+          </div>
+          <aside class="map-readout">
+            <span>Coords</span>
+            <strong id="mapCoords">0, 0, 0</strong>
+            <span>Heading</span>
+            <strong id="mapHeading">000</strong>
+            <span>Speed</span>
+            <strong id="mapSpeed">0 km/h</strong>
+            <p>Extracts and broad loot zones are shown. Individual crates stay hidden.</p>
+          </aside>
+        </section>
+
         <footer>
           <span>LSX</span>
-          <p>No native GTA map. Tactical map will be a custom extraction screen.</p>
+          <p>ESC opens operations. M opens tactical map. Native GTA map stays disabled.</p>
         </footer>
 
         <div id="toast" class="toast"></div>

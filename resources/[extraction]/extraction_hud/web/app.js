@@ -24,6 +24,10 @@ const defaultStatus = {
     location: 'Unknown Sector',
     crossing: '',
     inVehicle: false,
+    speed: 0,
+    coords: { x: 0, y: 0, z: 0 },
+    minimapVisible: false,
+    minimapRangeMeters: 220,
 };
 
 const defaultSettings = {
@@ -113,6 +117,40 @@ function VitalsPanel({ status }) {
         e(Meter, { label: 'Health', value: status.health }),
         e(Meter, { label: 'Armor', value: status.armor, variant: 'armor' }),
         e(Meter, { label: 'Stamina', value: status.stamina, variant: 'stamina' })
+    );
+}
+
+function ScannerPanel({ status }) {
+    if (!status.active || !status.minimapVisible) {
+        return null;
+    }
+
+    const coords = status.coords || {};
+
+    return e(
+        'section',
+        { className: 'scanner-panel' },
+        e(
+            'div',
+            { className: 'scanner-head' },
+            e('span', null, 'Sector Scanner'),
+            e('strong', null, `${status.cardinal || 'N'} ${Math.floor(status.heading || 0).toString().padStart(3, '0')}`)
+        ),
+        e(
+            'div',
+            { className: 'scanner-dial' },
+            e('div', { className: 'scanner-grid', style: { transform: `rotate(${-Number(status.heading || 0)}deg)` } }),
+            e('div', { className: 'scanner-sweep' }),
+            e('div', { className: 'scanner-player' }),
+            e('span', { className: 'scanner-north' }, 'N')
+        ),
+        e(
+            'div',
+            { className: 'scanner-foot' },
+            e('span', null, `${Math.floor(status.speed || 0)} km/h`),
+            e('span', null, `${coords.x || 0}, ${coords.y || 0}`),
+            e('span', null, `${status.minimapRangeMeters || 220}m`)
+        )
     );
 }
 
@@ -257,7 +295,7 @@ function App() {
         'main',
         { className: 'hud' },
         e(RaidBar, { raid, status }),
-        e('div', { className: 'bottom-left' }, e(VitalsPanel, { status })),
+        e('div', { className: 'bottom-left' }, e(ScannerPanel, { status }), e(VitalsPanel, { status })),
         e(ProgressPanel, { progress }),
         e(HintPanel, { text: hint }),
         e(ProfilePanel, { profile }),

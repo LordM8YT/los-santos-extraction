@@ -144,6 +144,7 @@ html.hud-closed body {
 }
 
 .vitals-panel,
+.scanner-panel,
 .hint-panel,
 .progress-panel,
 .profile-panel,
@@ -158,6 +159,95 @@ html.hud-closed body {
 .vitals-panel {
     padding: 0.72rem;
     clip-path: polygon(0 0, calc(100% - 0.8rem) 0, 100% 0.8rem, 100% 100%, 0 100%);
+}
+
+.scanner-panel {
+    display: grid;
+    grid-template-columns: 7.8rem 1fr;
+    gap: 0.7rem;
+    align-items: center;
+    padding: 0.72rem;
+    overflow: hidden;
+    clip-path: polygon(0.8rem 0, 100% 0, 100% 100%, 0 100%, 0 0.8rem);
+}
+
+.scanner-head,
+.scanner-foot {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.scanner-head span,
+.scanner-foot span {
+    color: var(--muted);
+    font-size: 0.58rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.scanner-head strong {
+    color: var(--green);
+    font-size: 1.15rem;
+    letter-spacing: 0.1em;
+    text-shadow: 0 0 18px rgba(174, 245, 98, 0.36);
+}
+
+.scanner-dial {
+    position: relative;
+    justify-self: end;
+    width: 8.2rem;
+    height: 8.2rem;
+    overflow: hidden;
+    border: 1px solid var(--line-hot);
+    border-radius: 50%;
+    background:
+        radial-gradient(circle, rgba(174, 245, 98, 0.16) 0 2px, transparent 3px),
+        radial-gradient(circle, transparent 0 35%, rgba(174, 245, 98, 0.08) 36% 37%, transparent 38%),
+        radial-gradient(circle, transparent 0 62%, rgba(174, 245, 98, 0.1) 63% 64%, transparent 65%),
+        rgba(0, 0, 0, 0.34);
+}
+
+.scanner-grid {
+    position: absolute;
+    inset: -18%;
+    background:
+        linear-gradient(rgba(174, 245, 98, 0.09) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(174, 245, 98, 0.09) 1px, transparent 1px);
+    background-size: 1rem 1rem;
+    transition: transform 120ms linear;
+}
+
+.scanner-sweep {
+    position: absolute;
+    inset: 0;
+    background: conic-gradient(from 0deg, rgba(174, 245, 98, 0.34), transparent 62deg, transparent);
+    animation: scanner-sweep 2.7s linear infinite;
+    mix-blend-mode: screen;
+}
+
+.scanner-player {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 0;
+    height: 0;
+    transform: translate(-50%, -50%);
+    border-right: 0.36rem solid transparent;
+    border-bottom: 0.82rem solid var(--green);
+    border-left: 0.36rem solid transparent;
+    filter: drop-shadow(0 0 9px rgba(174, 245, 98, 0.82));
+}
+
+.scanner-north {
+    position: absolute;
+    top: 0.42rem;
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--green);
+    font-size: 0.58rem;
+    font-weight: 900;
 }
 
 .sector-line {
@@ -350,7 +440,8 @@ html.hud-closed body {
 }
 
 html.hud-minimal .raid-cell,
-html.hud-minimal .vitals-panel {
+html.hud-minimal .vitals-panel,
+html.hud-minimal .scanner-panel {
     display: none;
 }
 
@@ -372,6 +463,16 @@ html.hud-minimal .raid-timer {
     to {
         opacity: 1;
         transform: translateX(0);
+    }
+}
+
+@keyframes scanner-sweep {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
     }
 }
 
