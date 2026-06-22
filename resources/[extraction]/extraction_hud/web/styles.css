@@ -135,12 +135,12 @@ html.hud-closed body {
 
 .bottom-left {
     position: absolute;
-    bottom: 3.2vh;
+    bottom: 22vh;
     left: 1.35vw;
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
-    width: min(25rem, 31vw);
+    width: min(23rem, 29vw);
 }
 
 .vitals-panel,
@@ -163,7 +163,7 @@ html.hud-closed body {
 
 .scanner-panel {
     display: grid;
-    grid-template-columns: 7.8rem 1fr;
+    grid-template-columns: 1fr auto;
     gap: 0.7rem;
     align-items: center;
     padding: 0.72rem;
@@ -192,6 +192,10 @@ html.hud-closed body {
     font-size: 1.15rem;
     letter-spacing: 0.1em;
     text-shadow: 0 0 18px rgba(174, 245, 98, 0.36);
+}
+
+.scanner-foot {
+    text-align: right;
 }
 
 .scanner-dial {

@@ -133,23 +133,15 @@ function ScannerPanel({ status }) {
         e(
             'div',
             { className: 'scanner-head' },
-            e('span', null, 'Sector Scanner'),
+            e('span', null, 'GTA GPS Link'),
             e('strong', null, `${status.cardinal || 'N'} ${Math.floor(status.heading || 0).toString().padStart(3, '0')}`)
-        ),
-        e(
-            'div',
-            { className: 'scanner-dial' },
-            e('div', { className: 'scanner-grid', style: { transform: `rotate(${-Number(status.heading || 0)}deg)` } }),
-            e('div', { className: 'scanner-sweep' }),
-            e('div', { className: 'scanner-player' }),
-            e('span', { className: 'scanner-north' }, 'N')
         ),
         e(
             'div',
             { className: 'scanner-foot' },
             e('span', null, `${Math.floor(status.speed || 0)} km/h`),
             e('span', null, `${coords.x || 0}, ${coords.y || 0}`),
-            e('span', null, `${status.minimapRangeMeters || 220}m`)
+            e('span', null, 'Native map')
         )
     );
 }

@@ -3,7 +3,7 @@ local latestSnapshot
 local settingsKvpKey = 'extraction_lobby:client_settings'
 
 local clientSettings = {
-    minimapMode = 'vehicle',
+    minimapMode = 'always',
     hudDensity = 'full',
 }
 

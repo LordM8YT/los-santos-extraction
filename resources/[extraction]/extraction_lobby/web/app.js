@@ -56,7 +56,7 @@ let toastTimer = null;
 let deployLockTimer = null;
 let deployLocked = false;
 let currentSettings = {
-  minimapMode: "vehicle",
+  minimapMode: "always",
   hudDensity: "full",
 };
 

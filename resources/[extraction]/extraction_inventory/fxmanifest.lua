@@ -7,6 +7,8 @@ author 'OpenAI Codex'
 description 'Standalone inventory UI for the extraction prototype.'
 version '1.0.1'
 
+dependency 'extraction_items'
+
 ui_page 'web/inventory.html'
 
 files {

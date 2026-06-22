@@ -11,8 +11,10 @@ const carryWeightMeta = document.getElementById("carryWeightMeta");
 const modeMeta = document.getElementById("modeMeta");
 const secondaryKicker = document.getElementById("secondaryKicker");
 const secondaryTitle = document.getElementById("secondaryTitle");
+const dropZone = document.getElementById("dropZone");
 
 let currentSnapshot = null;
+let draggedItemName = null;
 
 const resourceName =
   typeof GetParentResourceName === "function"
@@ -48,67 +50,189 @@ function setText(element, value) {
   }
 }
 
-function setHtml(element, value) {
-  if (element) {
-    element.innerHTML = value;
-  }
-}
-
 function isLoadoutItem(entry) {
   return entry.type === "weapon" || entry.type === "ammo";
+}
+
+function getItemImage(entry) {
+  if (!entry.image) {
+    return "";
+  }
+
+  return `nui://extraction_items/web/images/items/${entry.image}`;
+}
+
+function getItemRarity(entry) {
+  if (entry.type === "weapon") {
+    return "weapon";
+  }
+
+  if (entry.type === "ammo") {
+    return "ammo";
+  }
+
+  if ((entry.value || 0) >= 300) {
+    return "rare";
+  }
+
+  return "common";
+}
+
+function findPlacement(occupied, width, height, itemWidth, itemHeight) {
+  for (let y = 1; y <= height; y += 1) {
+    for (let x = 1; x <= width; x += 1) {
+      if (x + itemWidth - 1 > width || y + itemHeight - 1 > height) {
+        continue;
+      }
+
+      let blocked = false;
+
+      for (let yy = y; yy < y + itemHeight; yy += 1) {
+        for (let xx = x; xx < x + itemWidth; xx += 1) {
+          if (occupied.has(`${xx}:${yy}`)) {
+            blocked = true;
+            break;
+          }
+        }
+
+        if (blocked) {
+          break;
+        }
+      }
+
+      if (!blocked) {
+        for (let yy = y; yy < y + itemHeight; yy += 1) {
+          for (let xx = x; xx < x + itemWidth; xx += 1) {
+            occupied.add(`${xx}:${yy}`);
+          }
+        }
+
+        return { x, y };
+      }
+    }
+  }
+
+  return null;
+}
+
+function layoutItems(entries, container) {
+  const width = Math.max(1, Number(container?.width || 6));
+  const height = Math.max(1, Number(container?.height || 6));
+  const occupied = new Set();
+
+  return (entries || []).map((entry) => {
+    const itemWidth = Math.max(1, Math.min(width, Number(entry.width || 1)));
+    const itemHeight = Math.max(1, Math.min(height, Number(entry.height || 1)));
+    const placement = findPlacement(occupied, width, height, itemWidth, itemHeight);
+
+    return {
+      ...entry,
+      width: itemWidth,
+      height: itemHeight,
+      placement,
+      overflow: !placement,
+    };
+  });
+}
+
+function renderSlots(width, height) {
+  const slots = [];
+
+  for (let index = 0; index < width * height; index += 1) {
+    slots.push(`<span class="grid-slot"></span>`);
+  }
+
+  return slots.join("");
+}
+
+function renderGrid(target, entries, { allowDrop = false, container = {} } = {}) {
+  if (!target) {
+    return;
+  }
+
+  const width = Math.max(1, Number(container?.width || 6));
+  const height = Math.max(1, Number(container?.height || 6));
+  const laidOutItems = layoutItems(entries || [], { width, height });
+  const visibleItems = laidOutItems.filter((entry) => !entry.overflow);
+  const overflowItems = laidOutItems.filter((entry) => entry.overflow);
+
+  target.style.setProperty("--grid-cols", width);
+  target.style.setProperty("--grid-rows", height);
+
+  if (!entries || entries.length === 0) {
+    target.innerHTML = `
+      <div class="grid-shell">
+        <div class="slot-layer">${renderSlots(width, height)}</div>
+        <div class="empty">No items available</div>
+      </div>
+    `;
+    return;
+  }
+
+  const cards = visibleItems
+    .map((entry) => {
+      const totalValue =
+        entry.type === "weapon" || entry.type === "ammo"
+          ? "Loadout"
+          : `$${formatNumber(entry.count * entry.value)}`;
+      const image = getItemImage(entry);
+      const fallback = escapeHtml((entry.label || entry.name || "?").slice(0, 2).toUpperCase());
+      const rarity = getItemRarity(entry);
+      const dragAttrs = allowDrop
+        ? `draggable="true" data-draggable="true" data-item="${escapeHtml(entry.name)}"`
+        : `draggable="false"`;
+
+      return `
+        <article
+          class="item-card item-${escapeHtml(entry.type || "loot")}"
+          data-rarity="${rarity}"
+          style="grid-column:${entry.placement.x} / span ${entry.width}; grid-row:${entry.placement.y} / span ${entry.height};"
+          ${dragAttrs}
+        >
+          <div class="item-art">
+            ${image ? `<img src="${escapeHtml(image)}" alt="" onerror="this.classList.add('is-missing')" />` : ""}
+            <span>${fallback}</span>
+          </div>
+          <div class="item-copy">
+            <strong>${escapeHtml(entry.label || entry.name)}</strong>
+            <span>${formatNumber(entry.weight)} wt / ${entry.width}x${entry.height}</span>
+          </div>
+          <div class="item-count">x${formatNumber(entry.count)}</div>
+          <div class="item-value">${totalValue}</div>
+          ${allowDrop ? `<button class="quick-drop" data-action="drop" data-item="${escapeHtml(entry.name)}" type="button">Drop</button>` : ""}
+        </article>
+      `;
+    })
+    .join("");
+
+  const overflow = overflowItems.length > 0
+    ? `<div class="overflow-warning">${overflowItems.length} item types do not fit this container view.</div>`
+    : "";
+
+  target.innerHTML = `
+    <div class="grid-shell">
+      <div class="slot-layer">${renderSlots(width, height)}</div>
+      <div class="item-layer">${cards}</div>
+      ${overflow}
+    </div>
+  `;
 }
 
 function hideUi() {
   app.classList.remove("is-open");
   app.setAttribute("aria-hidden", "true");
   root.classList.add("nui-closed");
+  root.classList.remove("inventory-open");
+  document.body.classList.remove("inventory-open");
 }
 
 function showUi(snapshot) {
   root.classList.remove("nui-closed");
+  root.classList.add("inventory-open");
+  document.body.classList.add("inventory-open");
   app.classList.add("is-open");
   app.setAttribute("aria-hidden", "false");
   render(snapshot);
-}
-
-function renderList(target, entries, { allowDrop = false, container = {} } = {}) {
-  if (!target) {
-    return;
-  }
-
-  target.style.setProperty("--grid-cols", Number(container.width || 6));
-  target.style.setProperty("--grid-rows", Number(container.height || 6));
-
-  if (!entries || entries.length === 0) {
-    setHtml(target, `<div class="empty">No items available</div>`);
-    return;
-  }
-
-  setHtml(target, entries
-    .map((entry) => {
-      const type = entry.type || "loot";
-      const value =
-        type === "weapon" || type === "ammo"
-          ? "Loadout"
-          : `$${formatNumber(entry.count * entry.value)}`;
-      const rarity = type === "weapon" ? "weapon" : type === "ammo" ? "ammo" : "loot";
-      const button = allowDrop
-        ? `<button class="danger" data-action="drop" data-item="${escapeHtml(entry.name)}">Drop 1</button>`
-        : "";
-
-      return `
-        <div class="item item-${type} tetris-item" data-rarity="${rarity}" style="--item-w:${Number(entry.width || 1)}; --item-h:${Number(entry.height || 1)};">
-          <div class="item-icon">${escapeHtml(type.slice(0, 1).toUpperCase())}</div>
-          <div class="item-main">
-            <strong>${escapeHtml(entry.label)}</strong>
-            <span>${formatNumber(entry.count)}x | ${formatNumber(entry.weight)} wt each | ${Number(entry.width || 1)}x${Number(entry.height || 1)} | ${escapeHtml(type)}</span>
-          </div>
-          <div class="item-value">${value}</div>
-          ${button}
-        </div>
-      `;
-    })
-    .join(""));
 }
 
 function render(snapshot) {
@@ -128,8 +252,8 @@ function render(snapshot) {
   const loadoutEntries = (snapshot.stash || []).filter(isLoadoutItem);
   const secondaryEntries = snapshot.raidActive ? snapshot.carry : loadoutEntries;
 
-  renderList(stashList, stashEntries, { container: snapshot.containers?.stash });
-  renderList(bagList, secondaryEntries, {
+  renderGrid(stashList, stashEntries, { container: snapshot.containers?.stash });
+  renderGrid(bagList, secondaryEntries, {
     allowDrop: snapshot.raidActive,
     container: snapshot.raidActive ? snapshot.containers?.raidBag : snapshot.containers?.loadout,
   });
@@ -144,7 +268,9 @@ function render(snapshot) {
   setText(stashValueMeta, `$${formatNumber(snapshot.stashValue)}`);
   setText(carryWeightMeta, `${formatNumber(snapshot.carryWeight)} / ${formatNumber(snapshot.maxCarryWeight)}`);
   setText(modeMeta, snapshot.raidActive ? "In Raid" : "Safehouse");
+
   sellButton.disabled = !snapshot.canSell || stashEntries.length === 0;
+  dropZone.classList.toggle("is-enabled", snapshot.raidActive === true);
 }
 
 hideUi();
@@ -174,6 +300,49 @@ document.addEventListener("click", (event) => {
   if (action === "drop" && itemName) {
     post("dropItem", { itemName });
   }
+});
+
+document.addEventListener("dragstart", (event) => {
+  const item = event.target?.closest("[data-draggable='true']");
+  if (!item) {
+    return;
+  }
+
+  draggedItemName = item.dataset.item;
+  event.dataTransfer.effectAllowed = "move";
+  event.dataTransfer.setData("text/plain", draggedItemName);
+  dropZone.classList.add("is-armed");
+});
+
+document.addEventListener("dragend", () => {
+  draggedItemName = null;
+  dropZone.classList.remove("is-armed", "is-hovered");
+});
+
+dropZone.addEventListener("dragover", (event) => {
+  if (!draggedItemName || !dropZone.classList.contains("is-enabled")) {
+    return;
+  }
+
+  event.preventDefault();
+  event.dataTransfer.dropEffect = "move";
+  dropZone.classList.add("is-hovered");
+});
+
+dropZone.addEventListener("dragleave", () => {
+  dropZone.classList.remove("is-hovered");
+});
+
+dropZone.addEventListener("drop", (event) => {
+  event.preventDefault();
+  const itemName = draggedItemName || event.dataTransfer.getData("text/plain");
+  dropZone.classList.remove("is-armed", "is-hovered");
+
+  if (itemName && dropZone.classList.contains("is-enabled")) {
+    post("dropItem", { itemName });
+  }
+
+  draggedItemName = null;
 });
 
 document.addEventListener("keyup", (event) => {

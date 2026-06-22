@@ -26,7 +26,7 @@ local send
 local settingsKvpKey = 'extraction_hud:client_settings'
 
 local hudSettings = {
-    minimapMode = 'vehicle',
+    minimapMode = 'always',
     hudDensity = 'full',
 }
 

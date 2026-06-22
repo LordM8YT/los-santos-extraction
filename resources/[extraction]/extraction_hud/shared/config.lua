@@ -1,9 +1,9 @@
 ExtractionHudConfig = {
     Minimap = {
         enabled = true,
-        useNativeRadar = false,
+        useNativeRadar = true,
         showOnlyInRaid = true,
-        showOnFoot = false,
+        showOnFoot = true,
         showInVehicle = true,
         zoom = 1150,
         hideNorthBlip = true,

@@ -4,6 +4,8 @@ local currentView = 'menu'
 local activeExtractions = {}
 local lootZones = {}
 local deathSignals = {}
+local nativeMapOpen = false
+local nativeMapOpenedAt = 0
 
 local mapBounds = {
     minX = -2800.0,
@@ -127,6 +129,19 @@ local function closePause()
     send('close')
 end
 
+local function openNativeMap()
+    closePause()
+    nativeMapOpen = true
+    nativeMapOpenedAt = GetGameTimer()
+    SetNuiFocus(false, false)
+    SetNuiFocusKeepInput(false)
+    ActivateFrontendMenu(joaat('FE_MENU_VERSION_MP_PAUSE'), false, -1)
+
+    if PauseMenuceptionGoDeeper then
+        PauseMenuceptionGoDeeper(0)
+    end
+end
+
 local function getMapPayload()
     local ped = PlayerPedId()
     local coords = GetEntityCoords(ped)
@@ -181,10 +196,10 @@ RegisterCommand('extractionpause', function()
 end, false)
 
 RegisterCommand('extractionmap', function()
-    openPause('map')
+    openNativeMap()
 end, false)
 
-RegisterKeyMapping('extractionmap', 'Open LSX tactical map', 'keyboard', 'M')
+RegisterKeyMapping('extractionmap', 'Open GTA tactical map', 'keyboard', 'M')
 
 RegisterNUICallback('close', function(_, cb)
     closePause()
@@ -199,6 +214,11 @@ RegisterNUICallback('setView', function(data, cb)
         sendMapData()
     end
 
+    cb({ ok = true })
+end)
+
+RegisterNUICallback('openNativeMap', function(_, cb)
+    openNativeMap()
     cb({ ok = true })
 end)
 
@@ -264,23 +284,31 @@ CreateThread(function()
     refreshLootZones()
 
     while true do
-        DisableControlAction(0, 199, true) -- Pause menu
-        DisableControlAction(0, 200, true) -- ESC pause
-        DisableControlAction(0, 244, true) -- Interaction/menu fallback
-
-        if IsDisabledControlJustPressed(0, 199) or IsDisabledControlJustPressed(0, 200) then
-            if uiOpen then
-                closePause()
-            else
-                openPause('menu')
+        if nativeMapOpen then
+            if not IsPauseMenuActive() and GetGameTimer() - nativeMapOpenedAt > 750 then
+                nativeMapOpen = false
             end
-        end
 
-        if IsPauseMenuActive() then
-            SetPauseMenuActive(false)
-        end
+            Wait(0)
+        else
+            DisableControlAction(0, 199, true) -- Pause menu
+            DisableControlAction(0, 200, true) -- ESC pause
+            DisableControlAction(0, 244, true) -- Interaction/menu fallback
 
-        Wait(0)
+            if IsDisabledControlJustPressed(0, 199) or IsDisabledControlJustPressed(0, 200) then
+                if uiOpen then
+                    closePause()
+                else
+                    openPause('menu')
+                end
+            end
+
+            if IsPauseMenuActive() then
+                SetPauseMenuActive(false)
+            end
+
+            Wait(0)
+        end
     end
 end)
 
