@@ -12,6 +12,7 @@ local hudHiddenComponents = {
     11, -- Floating help text
     12, -- Floating help text
     13, -- Cash change
+    14, -- Reticle
     16, -- Radio stations
     17, -- Save game
     19, -- Weapon wheel
@@ -36,6 +37,8 @@ local raidState = {
     carryWeight = 0,
     maxCarryWeight = 0,
 }
+
+local lastStatusPayload = ''
 
 local function loadClientSettings()
     local encoded = GetResourceKvpString(settingsKvpKey)
@@ -132,6 +135,49 @@ function send(action, payload)
         action = action,
         payload = payload or {}
     })
+end
+
+local function getHeadingCardinal(heading)
+    local directions = { 'N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW' }
+    local index = math.floor(((heading + 22.5) % 360) / 45) + 1
+    return directions[index] or 'N'
+end
+
+local function getPlayerStatus()
+    local ped = PlayerPedId()
+    local coords = GetEntityCoords(ped)
+    local streetHash, crossingHash = GetStreetNameAtCoord(coords.x, coords.y, coords.z)
+    local streetName = GetStreetNameFromHashKey(streetHash) or ''
+    local crossingName = crossingHash and crossingHash ~= 0 and (GetStreetNameFromHashKey(crossingHash) or '') or ''
+    local heading = GetGameplayCamRot(2).z
+
+    if heading < 0 then
+        heading = heading + 360
+    end
+
+    return {
+        active = raidState.active,
+        health = math.max(0, GetEntityHealth(ped) - 100),
+        armor = GetPedArmour(ped),
+        stamina = math.floor(GetPlayerSprintStaminaRemaining(PlayerId())),
+        heading = math.floor(heading),
+        cardinal = getHeadingCardinal(heading),
+        location = streetName ~= '' and streetName or 'Unknown Sector',
+        crossing = crossingName,
+        inVehicle = IsPedInAnyVehicle(ped, false),
+    }
+end
+
+local function updateStatusHud()
+    local status = getPlayerStatus()
+    local encoded = json.encode(status)
+
+    if encoded == lastStatusPayload then
+        return
+    end
+
+    lastStatusPayload = encoded
+    send('status', status)
 end
 
 local function formatNumber(value)
@@ -231,6 +277,9 @@ CreateThread(function()
         end
 
         DisplayAmmoThisFrame(false)
+        if HudWeaponWheelIgnoreSelection then
+            HudWeaponWheelIgnoreSelection()
+        end
 
         applyMinimapCleanup(shouldShowRadar())
 
@@ -242,5 +291,12 @@ CreateThread(function()
     while true do
         updateRaidHud()
         Wait(500)
+    end
+end)
+
+CreateThread(function()
+    while true do
+        updateStatusHud()
+        Wait(250)
     end
 end)

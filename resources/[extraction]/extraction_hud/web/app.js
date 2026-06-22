@@ -1,122 +1,268 @@
-const raidPanel = document.getElementById("raidPanel");
-const raidTimer = document.getElementById("raidTimer");
-const bagValue = document.getElementById("bagValue");
-const bagWeight = document.getElementById("bagWeight");
-const progressPanel = document.getElementById("progressPanel");
-const progressLabel = document.getElementById("progressLabel");
-const progressPercent = document.getElementById("progressPercent");
-const progressFill = document.getElementById("progressFill");
-const hintPanel = document.getElementById("hintPanel");
-const profilePanel = document.getElementById("profilePanel");
-const toastStack = document.getElementById("toastStack");
+const { useEffect, useState } = React;
+const e = React.createElement;
 
-let profileTimer = null;
-let raidVisible = false;
-let progressVisible = false;
-let hintVisible = false;
-let profileVisible = false;
-let toastCount = 0;
+const defaultRaid = {
+    active: false,
+    secondsLeft: 0,
+    carryValueText: '$0',
+    carryWeightText: '0 / 0',
+};
 
-function updateRootVisibility() {
-  const shouldShow = raidVisible || progressVisible || hintVisible || profileVisible || toastCount > 0;
-  document.documentElement.classList.toggle("hud-closed", !shouldShow);
-}
+const defaultProgress = {
+    active: false,
+    label: 'Working',
+    percent: 0,
+};
 
-function applySettings(settings = {}) {
-  document.documentElement.classList.toggle("hud-minimal", settings.hudDensity === "minimal");
-  document.documentElement.dataset.minimapMode = settings.minimapMode || "vehicle";
-}
+const defaultStatus = {
+    active: false,
+    health: 100,
+    armor: 0,
+    stamina: 100,
+    heading: 0,
+    cardinal: 'N',
+    location: 'Unknown Sector',
+    crossing: '',
+    inVehicle: false,
+};
 
-function setVisible(element, visible) {
-  element.classList.toggle("hidden", !visible);
+const defaultSettings = {
+    minimapMode: 'vehicle',
+    hudDensity: 'full',
+};
+
+function clamp(value, min = 0, max = 100) {
+    return Math.max(min, Math.min(max, Number(value) || 0));
 }
 
 function formatTime(seconds) {
-  const mins = Math.floor((seconds || 0) / 60);
-  const secs = Math.max(0, seconds || 0) % 60;
-  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+    const safeSeconds = Math.max(0, Number(seconds) || 0);
+    const mins = Math.floor(safeSeconds / 60);
+    const secs = safeSeconds % 60;
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 }
 
-function showToast({ message, variant = "info" }) {
-  if (!message) return;
+function Meter({ label, value, variant }) {
+    const safeValue = clamp(value);
 
-  const toast = document.createElement("div");
-  toast.className = `toast ${variant}`;
-  toast.textContent = message;
-  toastStack.prepend(toast);
-  toastCount += 1;
-  updateRootVisibility();
-
-  setTimeout(() => {
-    toast.style.opacity = "0";
-    toast.style.transform = "translateX(18px)";
-  }, 4400);
-
-  setTimeout(() => {
-    toast.remove();
-    toastCount = Math.max(0, toastCount - 1);
-    updateRootVisibility();
-  }, 4900);
+    return e(
+        'div',
+        { className: 'bar-row' },
+        e('span', { className: 'label' }, label),
+        e('div', { className: 'meter' }, e('div', { className: `meter-fill ${variant || ''}`, style: { width: `${safeValue}%` } })),
+        e('span', { className: 'bar-value' }, Math.floor(safeValue))
+    );
 }
 
-function showProfile(payload) {
-  const title = payload.title || "Extraction Profile";
-  const lines = payload.lines || [];
+function RaidBar({ raid, status }) {
+    if (!raid.active) {
+        return null;
+    }
 
-  profilePanel.innerHTML = `
-    <h2>${title}</h2>
-    ${lines.map((line) => `<p>${line}</p>`).join("")}
-  `;
-
-  setVisible(profilePanel, true);
-  profileVisible = true;
-  updateRootVisibility();
-  clearTimeout(profileTimer);
-  profileTimer = setTimeout(() => {
-    setVisible(profilePanel, false);
-    profileVisible = false;
-    updateRootVisibility();
-  }, payload.duration || 15000);
+    return e(
+        'div',
+        { className: 'top-rig' },
+        e(
+            'section',
+            { className: 'raid-bar' },
+            e(
+                'div',
+                { className: 'raid-cell' },
+                e('div', { className: 'eyebrow' }, 'Secured value'),
+                e('span', { className: 'big-value' }, raid.carryValueText || '$0')
+            ),
+            e(
+                'div',
+                { className: 'raid-timer' },
+                e('div', { className: 'eyebrow' }, 'MIA timer'),
+                e('strong', null, formatTime(raid.secondsLeft))
+            ),
+            e(
+                'div',
+                { className: 'raid-cell right' },
+                e('div', { className: 'eyebrow' }, 'Carry weight'),
+                e('span', { className: 'big-value' }, raid.carryWeightText || '0 / 0')
+            )
+        ),
+        e(
+            'div',
+            { className: 'compass' },
+            e('span', { className: 'compass-rule' }),
+            e('span', null, `${status.cardinal || 'N'} ${Math.floor(status.heading || 0).toString().padStart(3, '0')}`),
+            e('span', { className: 'compass-rule' })
+        )
+    );
 }
 
-window.addEventListener("message", (event) => {
-  const { action, payload = {} } = event.data || {};
+function VitalsPanel({ status }) {
+    if (!status.active) {
+        return null;
+    }
 
-  if (action === "raid") {
-    raidVisible = Boolean(payload.active);
-    setVisible(raidPanel, raidVisible);
-    raidTimer.textContent = formatTime(payload.secondsLeft);
-    bagValue.textContent = payload.carryValueText || "$0";
-    bagWeight.textContent = payload.carryWeightText || "0 / 0";
-    applySettings({ hudDensity: payload.density });
-    updateRootVisibility();
-  }
+    const location = status.crossing ? `${status.location} / ${status.crossing}` : status.location;
 
-  if (action === "progress") {
-    progressVisible = Boolean(payload.active);
-    setVisible(progressPanel, progressVisible);
-    progressLabel.textContent = payload.label || "Working";
-    progressPercent.textContent = `${payload.percent || 0}%`;
-    progressFill.style.width = `${Math.max(0, Math.min(100, payload.percent || 0))}%`;
-    updateRootVisibility();
-  }
+    return e(
+        'section',
+        { className: 'vitals-panel' },
+        e(
+            'div',
+            { className: 'sector-line' },
+            e('span', { className: 'sector-name' }, location || 'Unknown Sector'),
+            e('span', { className: 'subtle' }, status.inVehicle ? 'Mobile' : 'On Foot')
+        ),
+        e(Meter, { label: 'Health', value: status.health }),
+        e(Meter, { label: 'Armor', value: status.armor, variant: 'armor' }),
+        e(Meter, { label: 'Stamina', value: status.stamina, variant: 'stamina' })
+    );
+}
 
-  if (action === "hint") {
-    hintPanel.textContent = payload.text || "";
-    hintVisible = Boolean(payload.text);
-    setVisible(hintPanel, hintVisible);
-    updateRootVisibility();
-  }
+function ProgressPanel({ progress }) {
+    if (!progress.active) {
+        return null;
+    }
 
-  if (action === "notify") {
-    showToast(payload);
-  }
+    const percent = clamp(progress.percent);
 
-  if (action === "profile") {
-    showProfile(payload);
-  }
+    return e(
+        'section',
+        { className: 'progress-panel' },
+        e(
+            'div',
+            { className: 'progress-head' },
+            e('span', { className: 'progress-title' }, progress.label || 'Working'),
+            e('span', { className: 'progress-percent' }, `${Math.floor(percent)}%`)
+        ),
+        e('div', { className: 'progress-track' }, e('div', { className: 'progress-fill', style: { width: `${percent}%` } })),
+        e('div', { className: 'progress-foot subtle' }, 'Backspace cancels')
+    );
+}
 
-  if (action === "settings") {
-    applySettings(payload);
-  }
-});
+function HintPanel({ text }) {
+    if (!text) {
+        return null;
+    }
+
+    return e('section', { className: 'hint-panel' }, text);
+}
+
+function ToastStack({ toasts }) {
+    return e(
+        'section',
+        { className: 'toast-stack' },
+        toasts.map((toast) =>
+            e(
+                'div',
+                { key: toast.id, className: `toast ${toast.variant || 'info'}` },
+                e('div', { className: 'toast-title' }, toast.variant || 'info'),
+                e('div', { className: 'toast-text' }, toast.message)
+            )
+        )
+    );
+}
+
+function ProfilePanel({ profile }) {
+    if (!profile.visible) {
+        return null;
+    }
+
+    return e(
+        'section',
+        { className: 'profile-panel' },
+        e('h2', null, profile.title || 'Extraction Profile'),
+        (profile.lines || []).map((line, index) => e('p', { key: `${line}-${index}` }, line))
+    );
+}
+
+function App() {
+    const [raid, setRaid] = useState(defaultRaid);
+    const [progress, setProgress] = useState(defaultProgress);
+    const [hint, setHint] = useState('');
+    const [status, setStatus] = useState(defaultStatus);
+    const [settings, setSettings] = useState(defaultSettings);
+    const [toasts, setToasts] = useState([]);
+    const [profile, setProfile] = useState({ visible: false, title: '', lines: [] });
+
+    const hasVisibleHud = raid.active || progress.active || hint || status.active || toasts.length > 0 || profile.visible;
+
+    useEffect(() => {
+        document.documentElement.classList.toggle('hud-closed', !hasVisibleHud);
+    }, [hasVisibleHud]);
+
+    useEffect(() => {
+        document.documentElement.classList.toggle('hud-minimal', settings.hudDensity === 'minimal');
+        document.documentElement.dataset.minimapMode = settings.minimapMode || 'vehicle';
+    }, [settings]);
+
+    useEffect(() => {
+        function handleMessage(event) {
+            const { action, payload = {} } = event.data || {};
+
+            if (action === 'boot') {
+                return;
+            }
+
+            if (action === 'settings') {
+                setSettings((current) => ({ ...current, ...payload }));
+                return;
+            }
+
+            if (action === 'status') {
+                setStatus((current) => ({ ...current, ...payload }));
+                return;
+            }
+
+            if (action === 'raid') {
+                setRaid((current) => ({ ...current, ...payload }));
+                return;
+            }
+
+            if (action === 'progress') {
+                setProgress((current) => ({ ...current, ...payload }));
+                return;
+            }
+
+            if (action === 'hint') {
+                setHint(payload.text || '');
+                return;
+            }
+
+            if (action === 'notify' && payload.message) {
+                const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+                setToasts((current) => [{ id, message: payload.message, variant: payload.variant || 'info' }, ...current].slice(0, 5));
+
+                window.setTimeout(() => {
+                    setToasts((current) => current.filter((toast) => toast.id !== id));
+                }, payload.duration || 4800);
+                return;
+            }
+
+            if (action === 'profile') {
+                setProfile({
+                    visible: true,
+                    title: payload.title || 'Extraction Profile',
+                    lines: Array.isArray(payload.lines) ? payload.lines : [],
+                });
+
+                window.setTimeout(() => {
+                    setProfile((current) => ({ ...current, visible: false }));
+                }, payload.duration || 15000);
+            }
+        }
+
+        window.addEventListener('message', handleMessage);
+        return () => window.removeEventListener('message', handleMessage);
+    }, []);
+
+    return e(
+        'main',
+        { className: 'hud' },
+        e(RaidBar, { raid, status }),
+        e('div', { className: 'bottom-left' }, e(VitalsPanel, { status })),
+        e(ProgressPanel, { progress }),
+        e(HintPanel, { text: hint }),
+        e(ProfilePanel, { profile }),
+        e(ToastStack, { toasts })
+    );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(e(App));
