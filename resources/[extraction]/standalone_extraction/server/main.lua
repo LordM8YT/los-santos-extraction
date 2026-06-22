@@ -58,10 +58,63 @@ local function notify(source, message)
     TriggerClientEvent('standalone_extraction:client:notify', source, message)
 end
 
+local function getWeaponItems()
+    if GetResourceState('extraction_weapons') ~= 'started' then
+        return {}
+    end
+
+    local weaponItems = exports.extraction_weapons:GetItems()
+    return type(weaponItems) == 'table' and weaponItems or {}
+end
+
+local function getItemDefinitions()
+    local definitions = {}
+
+    for itemName, itemData in pairs(Config.Items) do
+        definitions[itemName] = itemData
+    end
+
+    for itemName, itemData in pairs(getWeaponItems()) do
+        definitions[itemName] = itemData
+    end
+
+    return definitions
+end
+
+local function getItemDefinition(itemName)
+    return Config.Items[itemName] or getWeaponItems()[itemName]
+end
+
+local function getWeaponLootTable(tier)
+    if GetResourceState('extraction_weapons') ~= 'started' then
+        return {}
+    end
+
+    local weaponLootTable = exports.extraction_weapons:GetLootTable(tier)
+    return type(weaponLootTable) == 'table' and weaponLootTable or {}
+end
+
+local function getLootTable(tier)
+    local merged = {}
+    local baseLootTable = Config.LootTables[tier] or Config.LootTables.low
+
+    for _, entry in ipairs(baseLootTable or {}) do
+        merged[#merged + 1] = entry
+    end
+
+    for _, entry in ipairs(getWeaponLootTable(tier)) do
+        if getItemDefinition(entry.name) then
+            merged[#merged + 1] = entry
+        end
+    end
+
+    return merged
+end
+
 local function newLootBag()
     local bag = {}
 
-    for itemName in pairs(Config.Items) do
+    for itemName in pairs(getItemDefinitions()) do
         bag[itemName] = 0
     end
 
@@ -97,7 +150,7 @@ local function grantStarterKit(profile)
         profile.cash = profile.cash + (tonumber(starterKit.cash) or 0)
 
         for itemName, count in pairs(starterKit.stash or {}) do
-            if Config.Items[itemName] then
+            if getItemDefinition(itemName) then
                 profile.stash[itemName] = (tonumber(profile.stash[itemName]) or 0) + (tonumber(count) or 0)
             end
         end
@@ -109,7 +162,7 @@ local function grantStarterKit(profile)
 
     if (tonumber(profile.starterKitVersion) or 0) < starterVersion then
         for itemName, count in pairs(starterKit.stash or {}) do
-            local itemData = Config.Items[itemName]
+            local itemData = getItemDefinition(itemName)
             if itemData and (itemData.type == 'weapon' or itemData.type == 'ammo') then
                 local current = tonumber(profile.stash[itemName]) or 0
                 local minimum = tonumber(count) or 0
@@ -136,7 +189,7 @@ local function grantStarterLoadout(profile)
     local changed = false
 
     for itemName, count in pairs(starterKit.stash or {}) do
-        local itemData = Config.Items[itemName]
+        local itemData = getItemDefinition(itemName)
         if itemData and (itemData.type == 'weapon' or itemData.type == 'ammo') then
             local current = tonumber(profile.stash[itemName]) or 0
             local minimum = tonumber(count) or 0
@@ -163,7 +216,7 @@ local function ensureProfileShape(profile)
     profile.questClaims = type(profile.questClaims) == 'table' and profile.questClaims or {}
     profile.stash = type(profile.stash) == 'table' and profile.stash or {}
 
-    for itemName in pairs(Config.Items) do
+    for itemName in pairs(getItemDefinitions()) do
         profile.stash[itemName] = tonumber(profile.stash[itemName]) or 0
     end
 
@@ -171,7 +224,7 @@ local function ensureProfileShape(profile)
 end
 
 local function getItemMetadata(itemName)
-    local configItem = Config.Items[itemName] or {}
+    local configItem = getItemDefinition(itemName) or {}
     local registryItem
 
     if GetResourceState('extraction_items') == 'started' then
@@ -281,7 +334,7 @@ end
 local function getLootValue(loot)
     local total = 0
 
-    for itemName, itemData in pairs(Config.Items) do
+    for itemName, itemData in pairs(getItemDefinitions()) do
         if itemData.type ~= 'weapon' and itemData.type ~= 'ammo' then
             total = total + ((tonumber(loot[itemName]) or 0) * itemData.value)
         end
@@ -293,7 +346,7 @@ end
 local function getLootWeight(loot)
     local total = 0
 
-    for itemName, itemData in pairs(Config.Items) do
+    for itemName, itemData in pairs(getItemDefinitions()) do
         total = total + ((tonumber(loot[itemName]) or 0) * itemData.weight)
     end
 
@@ -303,7 +356,7 @@ end
 local function buildLootList(loot)
     local entries = {}
 
-    for itemName, itemData in pairs(Config.Items) do
+    for itemName, itemData in pairs(getItemDefinitions()) do
         local count = tonumber(loot[itemName]) or 0
         if count > 0 then
             local metadata = getItemMetadata(itemName)
@@ -371,7 +424,7 @@ local function getTraderCatalog()
 
     for _, offer in ipairs(shopItems) do
         local itemName = offer.item
-        local itemData = Config.Items[itemName]
+        local itemData = getItemDefinition(itemName)
 
         if itemData then
             local metadata = getItemMetadata(itemName)
@@ -476,7 +529,7 @@ local function sendInventorySnapshot(source, openUi)
 end
 
 local function addLoot(targetLoot, rewardLoot)
-    for itemName in pairs(Config.Items) do
+    for itemName in pairs(getItemDefinitions()) do
         targetLoot[itemName] = (tonumber(targetLoot[itemName]) or 0) + (tonumber(rewardLoot[itemName]) or 0)
     end
 end
@@ -484,7 +537,7 @@ end
 local function removeLoot(targetLoot, lootToRemove)
     local changed = false
 
-    for itemName in pairs(Config.Items) do
+    for itemName in pairs(getItemDefinitions()) do
         local removeCount = tonumber(lootToRemove[itemName]) or 0
         if removeCount > 0 then
             local current = tonumber(targetLoot[itemName]) or 0
@@ -497,13 +550,13 @@ local function removeLoot(targetLoot, lootToRemove)
 end
 
 local function clearLoot(loot)
-    for itemName in pairs(Config.Items) do
+    for itemName in pairs(getItemDefinitions()) do
         loot[itemName] = 0
     end
 end
 
 local function clearSellableLoot(loot)
-    for itemName, itemData in pairs(Config.Items) do
+    for itemName, itemData in pairs(getItemDefinitions()) do
         if itemData.type ~= 'weapon' and itemData.type ~= 'ammo' then
             loot[itemName] = 0
         end
@@ -513,7 +566,7 @@ end
 local function getStarterLoadout(profile)
     local loadout = {}
 
-    for itemName, itemData in pairs(Config.Items) do
+    for itemName, itemData in pairs(getItemDefinitions()) do
         if itemData.type == 'weapon' and (tonumber(profile.stash[itemName]) or 0) > 0 then
             local ammoCount = 0
             if itemData.ammoItem then
@@ -534,7 +587,7 @@ end
 local function buildLoadoutLoot(profile)
     local loadoutLoot = newLootBag()
 
-    for itemName, itemData in pairs(Config.Items) do
+    for itemName, itemData in pairs(getItemDefinitions()) do
         if itemData.type == 'weapon' and (tonumber(profile.stash[itemName]) or 0) > 0 then
             loadoutLoot[itemName] = 1
 
@@ -594,7 +647,7 @@ end
 local function copyLoot(loot)
     local copy = newLootBag()
 
-    for itemName in pairs(Config.Items) do
+    for itemName in pairs(getItemDefinitions()) do
         copy[itemName] = tonumber(loot[itemName]) or 0
     end
 
@@ -964,7 +1017,7 @@ local function chooseSpawnPoint(extractionIds)
 end
 
 local function rollLootItem(tier)
-    local lootTable = Config.LootTables[tier] or Config.LootTables.low
+    local lootTable = getLootTable(tier)
     local totalWeight = 0
 
     for _, entry in ipairs(lootTable) do
@@ -1230,9 +1283,16 @@ RegisterNetEvent('standalone_extraction:server:lootSpot', function(spotId)
     end
 
     local itemName = rollLootItem(spot.tier)
-    local itemData = Config.Items[itemName]
-    local amount = math.random(itemData.min, itemData.max)
-    local nextWeight = getLootWeight(raid.carry) + (amount * itemData.weight)
+    local itemData = getItemDefinition(itemName)
+    if not itemData then
+        notify(source, 'This cache has invalid loot data.')
+        return
+    end
+
+    local minAmount = math.max(1, math.floor(tonumber(itemData.min) or 1))
+    local maxAmount = math.max(minAmount, math.floor(tonumber(itemData.max) or minAmount))
+    local amount = math.random(minAmount, maxAmount)
+    local nextWeight = getLootWeight(raid.carry) + (amount * (tonumber(itemData.weight) or 0))
 
     if nextWeight > Config.Raid.maxCarryWeight then
         notify(source, Config.Strings.bag_full)
@@ -1406,7 +1466,7 @@ RegisterNetEvent('standalone_extraction:server:buyTraderItem', function(itemName
     end
 
     local profile = getProfile(source)
-    local itemData = Config.Items[itemName]
+    local itemData = getItemDefinition(itemName)
     local offer = getTraderOffer(itemName)
 
     if not profile or not itemData or not offer then
@@ -1480,7 +1540,7 @@ RegisterNetEvent('standalone_extraction:server:claimQuestReward', function(quest
     profile.xp = profile.xp + (tonumber(rewards.xp) or 0)
 
     for itemName, count in pairs(rewards.items or {}) do
-        if Config.Items[itemName] then
+        if getItemDefinition(itemName) then
             profile.stash[itemName] = (tonumber(profile.stash[itemName]) or 0) + (tonumber(count) or 0)
         end
     end
@@ -1554,7 +1614,7 @@ RegisterNetEvent('standalone_extraction:server:discardCarryItem', function(itemN
         return
     end
 
-    local itemData = Config.Items[itemName]
+    local itemData = getItemDefinition(itemName)
     amount = math.floor(tonumber(amount) or 1)
 
     if not itemData or amount < 1 then

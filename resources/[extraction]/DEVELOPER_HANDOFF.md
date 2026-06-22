@@ -6,6 +6,8 @@ This folder contains a standalone FiveM extraction prototype. The current goal i
 
 - `extraction_items`
   Shared item registry with tetris metadata and future container templates.
+- `extraction_weapons`
+  Weapon-pack adapter. Registers lootable weapon/ammo items and exposes weapon loot tables without coupling streamed weapon packs into the raid loop.
 - `extraction_traders`
   Standalone trader catalog. Start before `standalone_extraction`; purchases are still validated and applied by `standalone_extraction`.
 - `extraction_core`
@@ -52,6 +54,7 @@ Admin tooling is kept outside this folder in `resources/[admin]`:
 - Player data is stored in `standalone_extraction/data/players.json`.
 - Inventory is custom and standalone for now. `extraction_items` is the new shared registry for the future tetris inventory migration.
 - Inventory UI now renders a visual tetris/grid layout in both the lobby armory and raid inventory. Item placement is still derived client-side from item dimensions/count snapshots; server-authoritative drag/drop placement is not implemented yet.
+- Weapon and ammo loot can be extended through `extraction_weapons`. The current implementation uses vanilla GTA weapons first, so a third-party weapon pack can be added later by mapping add-on weapon names/hashes in one adapter resource.
 - Quest rewards are currently handled in `standalone_extraction` as a small profile-backed prototype. Claimed quest IDs are stored on the player profile in `questClaims`.
 - Trader catalog data lives in `extraction_traders`; player cash/stash mutations stay server-authoritative in `standalone_extraction`.
 - Safehouse inventory is integrated into `extraction_lobby`. `extraction_inventory` is the separate field inventory used while in raid.
@@ -66,6 +69,7 @@ Admin tooling is kept outside this folder in `resources/[admin]`:
 ## Planned Systems
 
 - Expanded trader shop with armor, backpacks, meds, price balancing, reputation and unlock tiers.
+- Lore-friendly third-party weapon pack selection, icon pass, recoil/damage balancing, and guarded weapon crate tuning.
 - `extraction_player` resource for profile/progression persistence.
 - Character creator UI and persistence on top of `extraction_character`.
 - Quest/task system with cash, XP, and item rewards.
