@@ -178,6 +178,7 @@ function renderGrid(target, entries, { allowDrop = false, container = {} } = {})
       const image = getItemImage(entry);
       const fallback = escapeHtml((entry.label || entry.name || "?").slice(0, 2).toUpperCase());
       const rarity = getItemRarity(entry);
+      const compact = entry.width * entry.height <= 1 ? `data-compact="true"` : "";
       const dragAttrs = allowDrop
         ? `draggable="true" data-draggable="true" data-item="${escapeHtml(entry.name)}"`
         : `draggable="false"`;
@@ -187,6 +188,7 @@ function renderGrid(target, entries, { allowDrop = false, container = {} } = {})
           class="item-card item-${escapeHtml(entry.type || "loot")}"
           data-rarity="${rarity}"
           style="grid-column:${entry.placement.x} / span ${entry.width}; grid-row:${entry.placement.y} / span ${entry.height};"
+          ${compact}
           ${dragAttrs}
         >
           <div class="item-art">

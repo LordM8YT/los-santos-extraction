@@ -688,9 +688,7 @@ dd { margin: 0; color: var(--paper); }
 }
 .lobby-item-card {
   position: relative;
-  display: grid;
-  grid-template-rows: 1fr auto auto;
-  gap: 4px;
+  display: block;
   min-width: 0;
   min-height: 0;
   margin: 3px;
@@ -714,14 +712,16 @@ dd { margin: 0; color: var(--paper); }
 .lobby-item-card[data-rarity="ammo"] { border-color: rgba(123, 185, 198, 0.42); }
 .lobby-item-card[data-rarity="rare"] { border-color: rgba(241, 207, 130, 0.52); }
 .item-art {
-  position: relative;
+  position: absolute;
+  inset: 6px;
+  z-index: 1;
   display: grid;
   place-items: center;
   min-height: 0;
 }
 .item-art img {
-  max-width: 86%;
-  max-height: 86%;
+  max-width: 96%;
+  max-height: 96%;
   object-fit: contain;
   filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.55));
 }
@@ -746,6 +746,16 @@ dd { margin: 0; color: var(--paper); }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.item-copy {
+  position: absolute;
+  left: 7px;
+  right: 7px;
+  bottom: 20px;
+  z-index: 2;
+  padding-top: 20px;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent, rgba(5, 6, 5, 0.86) 64%);
+}
 .item-copy strong {
   color: var(--paper);
   font-size: 13px;
@@ -759,10 +769,21 @@ dd { margin: 0; color: var(--paper); }
   text-transform: uppercase;
 }
 .lobby-item-card .item-value {
+  position: absolute;
+  left: 7px;
+  bottom: 6px;
+  z-index: 3;
   color: var(--gold);
   font-size: 11px;
   font-weight: 900;
   white-space: nowrap;
+}
+.lobby-item-card[data-compact="true"] .item-art {
+  inset: 4px;
+}
+.lobby-item-card[data-compact="true"] .item-copy,
+.lobby-item-card[data-compact="true"] .item-value {
+  display: none;
 }
 .overflow-warning {
   position: absolute;

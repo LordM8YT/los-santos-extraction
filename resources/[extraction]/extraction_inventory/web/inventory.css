@@ -213,9 +213,7 @@ h2 {
 
 .item-card {
   position: relative;
-  display: grid;
-  grid-template-rows: 1fr auto auto;
-  gap: 4px;
+  display: block;
   min-width: 0;
   min-height: 0;
   margin: 3px;
@@ -259,15 +257,17 @@ h2 {
 }
 
 .item-art {
-  position: relative;
+  position: absolute;
+  inset: 6px;
+  z-index: 1;
   display: grid;
   place-items: center;
   min-height: 0;
 }
 
 .item-art img {
-  max-width: 86%;
-  max-height: 86%;
+  max-width: 96%;
+  max-height: 96%;
   object-fit: contain;
   filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.55));
 }
@@ -301,6 +301,17 @@ h2 {
   white-space: nowrap;
 }
 
+.item-copy {
+  position: absolute;
+  left: 7px;
+  right: 7px;
+  bottom: 20px;
+  z-index: 2;
+  padding-top: 20px;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent, rgba(5, 6, 5, 0.86) 64%);
+}
+
 .item-copy strong {
   color: var(--paper);
   font-size: 13px;
@@ -319,6 +330,7 @@ h2 {
   position: absolute;
   top: 6px;
   right: 7px;
+  z-index: 3;
   padding: 2px 5px;
   color: #11130f;
   background: var(--gold);
@@ -327,10 +339,23 @@ h2 {
 }
 
 .item-value {
+  position: absolute;
+  left: 7px;
+  bottom: 6px;
+  z-index: 3;
   color: var(--gold);
   font-size: 11px;
   font-weight: 900;
   white-space: nowrap;
+}
+
+.item-card[data-compact="true"] .item-art {
+  inset: 4px;
+}
+
+.item-card[data-compact="true"] .item-copy,
+.item-card[data-compact="true"] .item-value {
+  display: none;
 }
 
 .quick-drop {

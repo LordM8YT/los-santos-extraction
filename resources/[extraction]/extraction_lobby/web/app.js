@@ -340,12 +340,14 @@ function renderList(target, entries, emptyText, container = {}) {
       const rarity = getItemRarity(entry);
       const image = getItemImage(entry);
       const fallback = escapeHtml((entry.label || entry.name || "?").slice(0, 2).toUpperCase());
+      const compact = entry.width * entry.height <= 1 ? `data-compact="true"` : "";
 
       return `
         <article
           class="lobby-item-card item-${type}"
           data-rarity="${rarity}"
           style="grid-column:${entry.placement.x} / span ${entry.width}; grid-row:${entry.placement.y} / span ${entry.height};"
+          ${compact}
         >
           <div class="item-art">
             ${image ? `<img src="${escapeHtml(image)}" alt="" onerror="this.classList.add('is-missing')" />` : ""}
