@@ -30,6 +30,16 @@ SessionConfig.Extractions = {
     },
 }
 
+SessionConfig.Spawning = {
+    avoidHighTierLoot = true,
+    avoidGuardZones = true,
+    avoidExtractions = true,
+    highTierMinDistance = 260.0,
+    guardZoneMinDistance = 180.0,
+    extractionMinDistance = 180.0,
+    fallbackToBestScoredSpawn = true,
+}
+
 SessionConfig.DeathDrops = {
     enabled = true,
     ttlSeconds = 900,

@@ -720,10 +720,6 @@ isPlayerNear = function(source, coords, maxDistance)
     return #(asVec3(playerCoords) - asVec3(coords)) <= maxDistance
 end
 
-local function chooseSpawnPoint()
-    return Config.Raid.spawnPoints[math.random(1, #Config.Raid.spawnPoints)]
-end
-
 local function getWorldLootSpot(spotId)
     if GetResourceState('extraction_world') ~= 'started' then
         return nil
@@ -732,13 +728,148 @@ local function getWorldLootSpot(spotId)
     return exports.extraction_world:GetLootSpot(spotId)
 end
 
+local function getWorldLootSpots()
+    if GetResourceState('extraction_world') ~= 'started' then
+        return {}
+    end
+
+    return exports.extraction_world:GetLootSpots() or {}
+end
+
+local function getWorldGuardZone(zoneId)
+    if GetResourceState('extraction_world') ~= 'started' then
+        return nil
+    end
+
+    return exports.extraction_world:GetGuardZone(zoneId)
+end
+
 local function hasWorldLootSpots()
     if GetResourceState('extraction_world') ~= 'started' then
         return false
     end
 
-    local spots = exports.extraction_world:GetLootSpots()
+    local spots = getWorldLootSpots()
     return type(spots) == 'table' and next(spots) ~= nil
+end
+
+local function getNearestDistance(coords, points, getPointCoords)
+    local nearest
+
+    for _, point in ipairs(points or {}) do
+        local pointCoords = getPointCoords(point)
+
+        if pointCoords then
+            local distance = #(asVec3(coords) - asVec3(pointCoords))
+            nearest = nearest and math.min(nearest, distance) or distance
+        end
+    end
+
+    return nearest
+end
+
+local function buildSpawnThreats(extractionIds)
+    local spawnConfig = SessionConfig.Spawning or {}
+    local threats = {
+        highTierLoot = {},
+        guardZones = {},
+        extractions = buildExtractionPayload(extractionIds),
+    }
+
+    if spawnConfig.avoidHighTierLoot ~= false or spawnConfig.avoidGuardZones ~= false then
+        for _, spot in ipairs(getWorldLootSpots()) do
+            if spot.tier == 'high' and spawnConfig.avoidHighTierLoot ~= false then
+                threats.highTierLoot[#threats.highTierLoot + 1] = spot
+            end
+
+            if spot.guardZoneId and spawnConfig.avoidGuardZones ~= false then
+                local guardZone = getWorldGuardZone(spot.guardZoneId)
+                if guardZone then
+                    threats.guardZones[#threats.guardZones + 1] = guardZone
+                end
+            end
+        end
+    end
+
+    return threats
+end
+
+local function scoreSpawnPoint(spawn, threats)
+    local spawnConfig = SessionConfig.Spawning or {}
+    local score = 0
+    local blocked = false
+    local spawnCoords = vec3(spawn.x, spawn.y, spawn.z)
+
+    local highTierDistance = getNearestDistance(spawnCoords, threats.highTierLoot, function(spot)
+        return spot.coords
+    end)
+
+    if highTierDistance then
+        if highTierDistance < (tonumber(spawnConfig.highTierMinDistance) or 260.0) then
+            blocked = true
+        end
+
+        score = score + highTierDistance
+    end
+
+    local guardDistance = getNearestDistance(spawnCoords, threats.guardZones, function(zone)
+        return zone.center
+    end)
+
+    if guardDistance then
+        if guardDistance < (tonumber(spawnConfig.guardZoneMinDistance) or 180.0) then
+            blocked = true
+        end
+
+        score = score + guardDistance
+    end
+
+    if spawnConfig.avoidExtractions ~= false then
+        local extractionDistance = getNearestDistance(spawnCoords, threats.extractions, function(point)
+            return point.coords
+        end)
+
+        if extractionDistance then
+            if extractionDistance < (tonumber(spawnConfig.extractionMinDistance) or 180.0) then
+                blocked = true
+            end
+
+            score = score + (extractionDistance * 0.5)
+        end
+    end
+
+    return score, blocked
+end
+
+local function chooseSpawnPoint(extractionIds)
+    local spawnConfig = SessionConfig.Spawning or {}
+    local threats = buildSpawnThreats(extractionIds)
+    local safeSpawns = {}
+    local bestSpawn
+    local bestScore = -1
+
+    for _, spawn in ipairs(Config.Raid.spawnPoints) do
+        local score, blocked = scoreSpawnPoint(spawn, threats)
+
+        if score > bestScore then
+            bestScore = score
+            bestSpawn = spawn
+        end
+
+        if not blocked then
+            safeSpawns[#safeSpawns + 1] = spawn
+        end
+    end
+
+    if #safeSpawns > 0 then
+        return safeSpawns[math.random(1, #safeSpawns)]
+    end
+
+    if spawnConfig.fallbackToBestScoredSpawn ~= false and bestSpawn then
+        return bestSpawn
+    end
+
+    return Config.Raid.spawnPoints[math.random(1, #Config.Raid.spawnPoints)]
 end
 
 local function rollLootItem(tier)
@@ -829,7 +960,7 @@ local function startSession(players)
             if profile then
                 local loadout = getStarterLoadout(profile)
                 local loadoutLoot = buildLoadoutLoot(profile)
-                local spawn = chooseSpawnPoint()
+                local spawn = chooseSpawnPoint(session.extractionIds)
 
                 if Config.Raid.entryFee > 0 then
                     profile.cash = profile.cash - Config.Raid.entryFee
