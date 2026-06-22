@@ -650,6 +650,21 @@ local function deleteSessionDeathDrops(session)
     session.deathDrops = {}
 end
 
+local function broadcastDeathSignal(session, dropId, coords, dropLoot)
+    local signalConfig = SessionConfig.DeathDrops and SessionConfig.DeathDrops.signal or {}
+
+    if signalConfig.enabled == false then
+        return
+    end
+
+    broadcastSession(session, 'standalone_extraction:client:deathSignal', {
+        id = dropId,
+        coords = vec3(coords.x, coords.y, coords.z),
+        value = getLootValue(dropLoot),
+        durationSeconds = tonumber(signalConfig.durationSeconds) or 75,
+    })
+end
+
 local function createDeathDrop(source, raid, dropCoords)
     local dropLoot = copyLoot(raid.carry)
     addLoot(dropLoot, raid.loadout or {})
@@ -692,6 +707,7 @@ local function createDeathDrop(source, raid, dropCoords)
     broadcastSession(session, 'standalone_extraction:client:updateDeathDrops', {
         drops = buildDeathDropPayload(session),
     })
+    broadcastDeathSignal(session, dropId, coords, dropLoot)
 end
 
 isPlayerNear = function(source, coords, maxDistance)

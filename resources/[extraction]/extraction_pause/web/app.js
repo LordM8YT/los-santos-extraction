@@ -11,6 +11,7 @@ const mapSpeed = document.getElementById("mapSpeed");
 const mapGrid = document.getElementById("mapGrid");
 const mapLootZones = document.getElementById("mapLootZones");
 const mapExtractions = document.getElementById("mapExtractions");
+const mapDeathSignals = document.getElementById("mapDeathSignals");
 const tabButtons = [...document.querySelectorAll(".view-tabs [data-action='setView']")];
 
 let toastTimer = null;
@@ -101,6 +102,20 @@ function renderExtractions(payload) {
   }
 }
 
+function renderDeathSignals(payload) {
+  clearLayer(mapDeathSignals);
+
+  for (const signal of payload.deathSignals || []) {
+    const point = projectPoint(signal.coords, payload.bounds);
+    const node = document.createElement("div");
+    node.className = "death-signal-marker";
+    node.style.left = `${point.x}%`;
+    node.style.top = `${point.y}%`;
+    node.innerHTML = `<span></span><strong>Death Signal</strong>`;
+    mapDeathSignals.appendChild(node);
+  }
+}
+
 function renderMap(payload) {
   mapPayload = payload || mapPayload;
 
@@ -122,6 +137,7 @@ function renderMap(payload) {
 
   renderLootZones(mapPayload);
   renderExtractions(mapPayload);
+  renderDeathSignals(mapPayload);
 }
 
 function setView(view) {

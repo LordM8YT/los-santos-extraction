@@ -19,6 +19,8 @@ local summaryPanel = {
 
 local extractionBlips = {}
 local lootBlips = {}
+local deathSignalBlips = {}
+local deathSignals = {}
 local raidVehicles = {}
 local interactionBusy = false
 local deathReported = false
@@ -46,6 +48,12 @@ local function notify(message)
     BeginTextCommandThefeedPost('STRING')
     AddTextComponentSubstringPlayerName(message)
     EndTextCommandThefeedPostTicker(false, true)
+end
+
+local function getExtractionOverride(extractId)
+    local extractionConfig = SessionConfig and SessionConfig.Extractions or {}
+    local overrides = extractionConfig.pointOverrides or {}
+    return overrides[extractId] or {}
 end
 
 local function setHudHint(text)
@@ -356,6 +364,15 @@ local function resetRaidState()
     end
 
     lootBlips = {}
+
+    for _, blip in pairs(deathSignalBlips) do
+        if DoesBlipExist(blip) then
+            RemoveBlip(blip)
+        end
+    end
+
+    deathSignalBlips = {}
+    deathSignals = {}
     cleanupRaidVehicles()
 end
 
@@ -546,6 +563,89 @@ local function removeLootBlip(spotId)
     lootBlips[spotId] = nil
 end
 
+local function getDeathSignalConfig()
+    local dropConfig = SessionConfig and SessionConfig.DeathDrops or {}
+    return dropConfig.signal or {}
+end
+
+local function removeDeathSignal(signalId)
+    local blip = deathSignalBlips[signalId]
+    if blip and DoesBlipExist(blip) then
+        RemoveBlip(blip)
+    end
+
+    deathSignalBlips[signalId] = nil
+    deathSignals[signalId] = nil
+end
+
+local function createDeathSignalBlip(signal)
+    local signalConfig = getDeathSignalConfig()
+    local coords = asVec3(signal.coords)
+    local blip = AddBlipForCoord(coords.x, coords.y, coords.z)
+
+    SetBlipSprite(blip, signalConfig.blipSprite or 161)
+    SetBlipScale(blip, signalConfig.blipScale or 0.95)
+    SetBlipColour(blip, signalConfig.blipColour or 1)
+    SetBlipAsShortRange(blip, false)
+    SetBlipFlashes(blip, true)
+    BeginTextCommandSetBlipName('STRING')
+    AddTextComponentSubstringPlayerName('Death Signal')
+    EndTextCommandSetBlipName(blip)
+
+    deathSignalBlips[signal.id] = blip
+end
+
+local function launchDeathSignalFlare(coords)
+    local signalConfig = getDeathSignalConfig()
+    local weaponHash = joaat(signalConfig.flareWeapon or 'WEAPON_FLAREGUN')
+    local height = tonumber(signalConfig.flareHeight) or 85.0
+    local speed = tonumber(signalConfig.flareSpeed) or 145.0
+    local ped = PlayerPedId()
+
+    ShootSingleBulletBetweenCoords(
+        coords.x,
+        coords.y,
+        coords.z + 1.2,
+        coords.x,
+        coords.y,
+        coords.z + height,
+        0,
+        true,
+        weaponHash,
+        ped,
+        true,
+        false,
+        speed
+    )
+
+    AddExplosion(coords.x, coords.y, coords.z + 0.4, 22, 0.0, true, false, 0.0)
+end
+
+local function addDeathSignal(payload)
+    local signalConfig = getDeathSignalConfig()
+
+    if signalConfig.enabled == false or not payload or not payload.coords then
+        return
+    end
+
+    local signalId = payload.id or ('death_signal_' .. GetGameTimer())
+    local coords = asVec3(payload.coords)
+    local durationMs = (tonumber(payload.durationSeconds) or tonumber(signalConfig.durationSeconds) or 75) * 1000
+
+    removeDeathSignal(signalId)
+
+    deathSignals[signalId] = {
+        id = signalId,
+        coords = coords,
+        value = payload.value or 0,
+        expiresAt = GetGameTimer() + durationMs,
+    }
+
+    createDeathSignalBlip(deathSignals[signalId])
+    launchDeathSignalFlare(coords)
+    notify('Death signal detected. Flare launched nearby.')
+end
+
 local function shouldSpawnRaidVehicle()
     local chance = tonumber(Config.RaidVehicles.spawnChance) or 1.0
     return chance >= 1.0 or math.random() <= chance
@@ -684,14 +784,21 @@ local function progressAction(label, duration, animDict, animClip)
     return not IsEntityDead(ped)
 end
 
-local function getExtractionHoldDuration()
+local function getExtractionHoldDuration(extractPoint)
     local extractionConfig = SessionConfig and SessionConfig.Extractions or {}
-    return math.max(1000, tonumber(extractionConfig.zoneHoldMs) or tonumber(Config.Raid.extractionTime) or 10000)
+    local override = getExtractionOverride(extractPoint and extractPoint.id)
+    return math.max(1000, tonumber(extractPoint and extractPoint.durationMs) or tonumber(override.durationMs) or tonumber(extractionConfig.zoneHoldMs) or tonumber(Config.Raid.extractionTime) or 10000)
+end
+
+local function getExtractionRadius(extractPoint)
+    local extractionConfig = SessionConfig and SessionConfig.Extractions or {}
+    local override = getExtractionOverride(extractPoint and extractPoint.id)
+    return tonumber(extractPoint and extractPoint.radius) or tonumber(override.radius) or tonumber(extractionConfig.defaultRadius) or tonumber(Config.ValidationDistance) or 6.0
 end
 
 local function runExtractionZone(extractPoint)
-    local holdDuration = getExtractionHoldDuration()
-    local zoneRadius = tonumber(extractPoint.radius) or tonumber(Config.ValidationDistance) or 6.0
+    local holdDuration = getExtractionHoldDuration(extractPoint)
+    local zoneRadius = getExtractionRadius(extractPoint)
     local startedAt = GetGameTimer()
     local nextHudUpdate = 0
 
@@ -790,6 +897,10 @@ RegisterNetEvent('standalone_extraction:client:updateDeathDrops', function(paylo
     raidState.deathDrops = payload and payload.drops or {}
 end)
 
+RegisterNetEvent('standalone_extraction:client:deathSignal', function(payload)
+    addDeathSignal(payload)
+end)
+
 RegisterNetEvent('standalone_extraction:client:showProfile', function(profile)
     showProfileSummary(profile)
 end)
@@ -872,6 +983,60 @@ CreateThread(function()
         if moveToLobbySpawn() then
             openLobbyAfterFlyIn()
         end
+    end
+end)
+
+CreateThread(function()
+    while true do
+        local sleep = 1000
+
+        if raidState.active and next(deathSignals) ~= nil then
+            local now = GetGameTimer()
+            local playerCoords = GetEntityCoords(PlayerPedId())
+            local signalConfig = getDeathSignalConfig()
+            local drawDistance = tonumber(signalConfig.markerDrawDistance) or 650.0
+
+            for signalId, signal in pairs(deathSignals) do
+                if now >= signal.expiresAt then
+                    removeDeathSignal(signalId)
+                else
+                    local distance = getDistance(playerCoords, signal.coords)
+
+                    if distance <= drawDistance then
+                        sleep = 0
+                        DrawMarker(
+                            1,
+                            signal.coords.x,
+                            signal.coords.y,
+                            signal.coords.z - 1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            5.0,
+                            5.0,
+                            1.4,
+                            255,
+                            55,
+                            45,
+                            140,
+                            false,
+                            false,
+                            2,
+                            false,
+                            nil,
+                            nil,
+                            false
+                        )
+                        DrawLightWithRange(signal.coords.x, signal.coords.y, signal.coords.z + 3.0, 255, 55, 45, 16.0, 3.0)
+                    end
+                end
+            end
+        end
+
+        Wait(sleep)
     end
 end)
 

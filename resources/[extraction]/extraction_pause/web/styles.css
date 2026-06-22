@@ -282,6 +282,39 @@ h1 {
   transform: translate(-50%, -50%);
 }
 
+.death-signal-marker {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ff5548;
+  transform: translate(-50%, -50%);
+  animation: death-pulse 900ms ease-in-out infinite alternate;
+}
+
+.death-signal-marker span {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #ff5548;
+  border-radius: 50%;
+  background: rgba(255, 85, 72, 0.2);
+  box-shadow: 0 0 22px rgba(255, 85, 72, 0.72);
+}
+
+.death-signal-marker strong {
+  max-width: 112px;
+  padding: 5px 7px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 85, 72, 0.38);
+  background: rgba(0, 0, 0, 0.62);
+  color: var(--paper);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
 .extract-marker span {
   width: 15px;
   height: 15px;
@@ -326,6 +359,18 @@ h1 {
   border: 1px solid rgba(225, 189, 114, 0.34);
   border-radius: 50%;
   transform: translate(-50%, -50%);
+}
+
+@keyframes death-pulse {
+  from {
+    opacity: 0.62;
+    filter: drop-shadow(0 0 4px rgba(255, 85, 72, 0.4));
+  }
+
+  to {
+    opacity: 1;
+    filter: drop-shadow(0 0 14px rgba(255, 85, 72, 0.85));
+  }
 }
 
 .map-readout {

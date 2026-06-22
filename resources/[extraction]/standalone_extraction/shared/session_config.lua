@@ -10,6 +10,24 @@ SessionConfig.Matchmaking = {
 SessionConfig.Extractions = {
     pointsPerSession = 3,
     zoneHoldMs = 10000,
+    defaultRadius = 6.0,
+    pointOverrides = {
+        Cargo_Ship = {
+            durationMs = 22000,
+            radius = 7.5,
+            danger = 'medium',
+        },
+        Motorway_Drain = {
+            durationMs = 14000,
+            radius = 5.5,
+            danger = 'low',
+        },
+        Motor_Way = {
+            durationMs = 18000,
+            radius = 7.0,
+            danger = 'medium',
+        },
+    },
 }
 
 SessionConfig.DeathDrops = {
@@ -17,4 +35,15 @@ SessionConfig.DeathDrops = {
     ttlSeconds = 900,
     crateModel = 'prop_box_wood02a_pu',
     crateGroundOffset = 0.95,
+    signal = {
+        enabled = true,
+        durationSeconds = 75,
+        blipSprite = 161,
+        blipColour = 1,
+        blipScale = 0.95,
+        markerDrawDistance = 650.0,
+        flareWeapon = 'WEAPON_FLAREGUN',
+        flareHeight = 85.0,
+        flareSpeed = 145.0,
+    },
 }

@@ -3,6 +3,7 @@ local raidActive = false
 local currentView = 'menu'
 local activeExtractions = {}
 local lootZones = {}
+local deathSignals = {}
 
 local mapBounds = {
     minX = -2800.0,
@@ -69,6 +70,47 @@ local function normalizeLootZones(zones)
     return normalized
 end
 
+local function addDeathSignal(payload)
+    if not payload or not payload.coords then
+        return
+    end
+
+    local coords = coordsToPayload(payload.coords)
+    if not coords then
+        return
+    end
+
+    local signalId = payload.id or ('death_signal_' .. GetGameTimer())
+
+    deathSignals[signalId] = {
+        id = signalId,
+        coords = coords,
+        value = payload.value or 0,
+        expiresAt = GetGameTimer() + ((tonumber(payload.durationSeconds) or 75) * 1000),
+    }
+end
+
+local function cleanupDeathSignals()
+    local now = GetGameTimer()
+
+    for signalId, signal in pairs(deathSignals) do
+        if now >= signal.expiresAt then
+            deathSignals[signalId] = nil
+        end
+    end
+end
+
+local function getDeathSignalPayload()
+    cleanupDeathSignals()
+
+    local signals = {}
+    for _, signal in pairs(deathSignals) do
+        signals[#signals + 1] = signal
+    end
+
+    return signals
+end
+
 local function refreshLootZones()
     if GetResourceState('extraction_world') ~= 'started' then
         lootZones = {}
@@ -98,6 +140,7 @@ local function getMapPayload()
         bounds = mapBounds,
         extractions = raidActive and activeExtractions or {},
         lootZones = raidActive and lootZones or {},
+        deathSignals = raidActive and getDeathSignalPayload() or {},
         player = {
             x = coords.x,
             y = coords.y,
@@ -192,7 +235,16 @@ end)
 RegisterNetEvent('standalone_extraction:client:endRaid', function()
     raidActive = false
     activeExtractions = {}
+    deathSignals = {}
     closePause()
+end)
+
+RegisterNetEvent('standalone_extraction:client:deathSignal', function(payload)
+    addDeathSignal(payload)
+
+    if uiOpen and currentView == 'map' then
+        sendMapData()
+    end
 end)
 
 AddEventHandler('onClientResourceStart', function(resourceName)
