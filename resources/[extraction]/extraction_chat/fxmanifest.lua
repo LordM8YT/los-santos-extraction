@@ -1,20 +1,20 @@
 fx_version 'cerulean'
-game 'common'
+game 'gta5'
 
 name 'extraction_chat'
 author 'OpenAI Codex'
-description 'Extraction-themed chat skin for the default FiveM chat resource.'
-version '1.0.0'
+description 'Standalone Los Santos Extraction chat UI with command autocomplete.'
+version '2.0.0'
 
-file 'style.css'
+ui_page 'web/index.html'
+
+files {
+    'web/index.html',
+    'web/styles.css',
+    'web/app.js',
+    'web/vendor/react.production.min.js',
+    'web/vendor/react-dom.production.min.js'
+}
 
 client_script 'client.lua'
-
-chat_theme 'extraction' {
-    styleSheet = 'style.css',
-    msgTemplates = {
-        default = '<div class="extract-chat-line"><span class="extract-chat-author">{0}</span><span class="extract-chat-text">{1}</span></div>',
-        defaultAlt = '<div class="extract-chat-line system"><span class="extract-chat-text">{0}</span></div>',
-        print = '<div class="extract-chat-line system"><span class="extract-chat-text">{0}</span></div>'
-    }
-}
+server_script 'server.lua'
