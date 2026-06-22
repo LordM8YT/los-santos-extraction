@@ -230,13 +230,7 @@ end)
 
 RegisterNUICallback('openInventory', function(_, cb)
     closePause()
-
-    if raidActive then
-        TriggerServerEvent('standalone_extraction:server:requestInventory', true)
-    else
-        TriggerEvent('extraction_lobby:client:open', 'loadout')
-    end
-
+    TriggerServerEvent('standalone_extraction:server:requestInventory', true)
     cb({ ok = true })
 end)
 

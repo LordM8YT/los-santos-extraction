@@ -1,5 +1,6 @@
 local uiOpen = false
 local latestSnapshot
+local raidActive = false
 local settingsKvpKey = 'extraction_lobby:client_settings'
 
 local clientSettings = {
@@ -87,6 +88,12 @@ end
 local function openUi(defaultView)
     defaultView = defaultView or 'deploy'
 
+    if raidActive then
+        closeUi()
+        TriggerServerEvent('standalone_extraction:server:requestInventory', true)
+        return
+    end
+
     if uiOpen then
         send('setView', { view = defaultView })
         requestSnapshot()
@@ -111,6 +118,13 @@ end)
 
 RegisterNetEvent('extraction_lobby:client:update', function(snapshot)
     latestSnapshot = snapshot or latestSnapshot
+    raidActive = latestSnapshot and latestSnapshot.raidActive == true or raidActive
+
+    if raidActive then
+        closeUi()
+        TriggerServerEvent('standalone_extraction:server:requestInventory', true)
+        return
+    end
 
     if uiOpen then
         send('update', {
@@ -120,10 +134,13 @@ RegisterNetEvent('extraction_lobby:client:update', function(snapshot)
 end)
 
 RegisterNetEvent('standalone_extraction:client:startRaid', function()
+    raidActive = true
     closeUi()
 end)
 
 RegisterNetEvent('standalone_extraction:client:endRaid', function()
+    raidActive = false
+
     if uiOpen then
         requestSnapshot()
     end

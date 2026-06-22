@@ -68,7 +68,8 @@ RegisterCommand('extractinv', function()
         return
     end
 
-    openUi()
+    -- Server snapshot is authoritative; local raid state can be stale during transitions.
+    TriggerServerEvent('standalone_extraction:server:requestInventory', true)
 end, false)
 
 RegisterKeyMapping('extractinv', 'Open extraction inventory', 'keyboard', 'I')

@@ -5,12 +5,13 @@ Raid field inventory UI resource for the extraction prototype.
 ## Responsibilities
 
 - Provides a standalone NUI for raid bag views while in an active raid.
-- Routes safehouse inventory access back to the lobby loadout screen.
+- Asks `standalone_extraction` for an authoritative snapshot before opening, so raid state cannot drift client-side.
+- Routes safehouse inventory access back to the lobby loadout screen only when the server snapshot says the player is not in raid.
 - Lets players drop items from the raid bag.
 
 ## Controls
 
-- `I` opens the lobby loadout screen in safehouse and the field inventory while in raid.
+- `I` opens the field inventory in raid. Outside raid it routes to the lobby loadout screen.
 - `Escape` closes inventory.
 
 ## Important Files
