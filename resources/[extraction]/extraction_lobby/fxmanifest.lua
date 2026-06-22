@@ -15,4 +15,6 @@ files {
     'web/app.js'
 }
 
+dependency 'extraction_items'
+
 client_script 'client/main.lua'

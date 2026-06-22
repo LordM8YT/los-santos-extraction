@@ -182,6 +182,97 @@ function itemValue(entry) {
   return `$${formatNumber(Number(entry.count || 0) * Number(entry.value || 0))}`;
 }
 
+function getItemImage(entry) {
+  if (!entry?.image) {
+    return "";
+  }
+
+  return `nui://extraction_items/web/images/items/${entry.image}`;
+}
+
+function getItemRarity(entry) {
+  if (entry.type === "weapon") {
+    return "weapon";
+  }
+
+  if (entry.type === "ammo") {
+    return "ammo";
+  }
+
+  if (Number(entry.value || 0) >= 300) {
+    return "rare";
+  }
+
+  return "common";
+}
+
+function findPlacement(occupied, width, height, itemWidth, itemHeight) {
+  for (let y = 1; y <= height; y += 1) {
+    for (let x = 1; x <= width; x += 1) {
+      if (x + itemWidth - 1 > width || y + itemHeight - 1 > height) {
+        continue;
+      }
+
+      let blocked = false;
+
+      for (let yy = y; yy < y + itemHeight; yy += 1) {
+        for (let xx = x; xx < x + itemWidth; xx += 1) {
+          if (occupied.has(`${xx}:${yy}`)) {
+            blocked = true;
+            break;
+          }
+        }
+
+        if (blocked) {
+          break;
+        }
+      }
+
+      if (!blocked) {
+        for (let yy = y; yy < y + itemHeight; yy += 1) {
+          for (let xx = x; xx < x + itemWidth; xx += 1) {
+            occupied.add(`${xx}:${yy}`);
+          }
+        }
+
+        return { x, y };
+      }
+    }
+  }
+
+  return null;
+}
+
+function layoutItems(entries, container) {
+  const width = Math.max(1, Number(container?.width || 6));
+  const height = Math.max(1, Number(container?.height || 4));
+  const occupied = new Set();
+
+  return (entries || []).map((entry) => {
+    const itemWidth = Math.max(1, Math.min(width, Number(entry.width || 1)));
+    const itemHeight = Math.max(1, Math.min(height, Number(entry.height || 1)));
+    const placement = findPlacement(occupied, width, height, itemWidth, itemHeight);
+
+    return {
+      ...entry,
+      width: itemWidth,
+      height: itemHeight,
+      placement,
+      overflow: !placement,
+    };
+  });
+}
+
+function renderSlots(width, height) {
+  const slots = [];
+
+  for (let index = 0; index < width * height; index += 1) {
+    slots.push(`<span class="grid-slot"></span>`);
+  }
+
+  return slots.join("");
+}
+
 function getQuest(snapshot, questId) {
   return (snapshot.quests || []).find((quest) => quest.id === questId);
 }
@@ -221,37 +312,66 @@ function renderList(target, entries, emptyText, container = {}) {
     return;
   }
 
-  const columns = Number(container.width || 8);
-  const rows = Number(container.height || 8);
+  const columns = Math.max(1, Number(container.width || 6));
+  const rows = Math.max(1, Number(container.height || 4));
+  const laidOutItems = layoutItems(entries || [], { width: columns, height: rows });
+  const visibleItems = laidOutItems.filter((entry) => !entry.overflow);
+  const overflowItems = laidOutItems.filter((entry) => entry.overflow);
+
   target.style.setProperty("--grid-cols", columns);
   target.style.setProperty("--grid-rows", rows);
   target.classList.add("tetris-grid");
 
   if (!entries || entries.length === 0) {
-    setHtml(target, `<div class="empty">${escapeHtml(emptyText)}</div>`);
+    setHtml(target, `
+      <div class="grid-shell lobby-grid-shell">
+        <div class="slot-layer">${renderSlots(columns, rows)}</div>
+        <div class="empty">${escapeHtml(emptyText)}</div>
+      </div>
+    `);
     return;
   }
 
-  setHtml(target, entries
-    .slice(0, 8)
+  const cards = visibleItems
     .map((entry) => {
       const count = formatNumber(entry.count);
       const weight = formatNumber(entry.weight);
       const type = escapeHtml(entry.type || "loot");
-      const rarity = entry.type === "weapon" ? "weapon" : entry.type === "ammo" ? "ammo" : "loot";
+      const rarity = getItemRarity(entry);
+      const image = getItemImage(entry);
+      const fallback = escapeHtml((entry.label || entry.name || "?").slice(0, 2).toUpperCase());
 
       return `
-        <div class="item crate-item tetris-item" data-rarity="${rarity}" style="--item-w:${Number(entry.width || 1)}; --item-h:${Number(entry.height || 1)};">
-          <div class="item-icon">${escapeHtml(type.slice(0, 1).toUpperCase())}</div>
-          <div>
-            <strong>${escapeHtml(entry.label)}</strong>
+        <article
+          class="lobby-item-card item-${type}"
+          data-rarity="${rarity}"
+          style="grid-column:${entry.placement.x} / span ${entry.width}; grid-row:${entry.placement.y} / span ${entry.height};"
+        >
+          <div class="item-art">
+            ${image ? `<img src="${escapeHtml(image)}" alt="" onerror="this.classList.add('is-missing')" />` : ""}
+            <span>${fallback}</span>
+          </div>
+          <div class="item-copy">
+            <strong>${escapeHtml(entry.label || entry.name)}</strong>
             <span>${count}x / ${weight} wt each / ${Number(entry.width || 1)}x${Number(entry.height || 1)} / ${type}</span>
           </div>
           <div class="item-value">${itemValue(entry)}</div>
-        </div>
+        </article>
       `;
     })
-    .join(""));
+    .join("");
+
+  const overflow = overflowItems.length > 0
+    ? `<div class="overflow-warning">${overflowItems.length} item types do not fit this container view.</div>`
+    : "";
+
+  setHtml(target, `
+    <div class="grid-shell lobby-grid-shell">
+      <div class="slot-layer">${renderSlots(columns, rows)}</div>
+      <div class="item-layer">${cards}</div>
+      ${overflow}
+    </div>
+  `);
 }
 
 function renderQuest(snapshot, questId, elements) {
@@ -289,10 +409,17 @@ function renderGearSlot(slot, state) {
 
   slot.classList.toggle("is-equipped", Boolean(state.equipped));
   slot.classList.toggle("is-empty", !state.equipped);
+  slot.classList.toggle("has-image", Boolean(state.image));
   setHtml(slot, `
-    <span>${escapeHtml(state.kicker)}</span>
-    <strong>${escapeHtml(state.title)}</strong>
-    <em>${escapeHtml(state.subtitle)}</em>
+    <div class="gear-art">
+      ${state.image ? `<img src="${escapeHtml(state.image)}" alt="" onerror="this.classList.add('is-missing')" />` : ""}
+      <span>${escapeHtml(state.fallback || state.kicker.slice(0, 2).toUpperCase())}</span>
+    </div>
+    <div class="gear-copy">
+      <span>${escapeHtml(state.kicker)}</span>
+      <strong>${escapeHtml(state.title)}</strong>
+      <em>${escapeHtml(state.subtitle)}</em>
+    </div>
   `);
 }
 
@@ -308,6 +435,8 @@ function renderLoadoutSlots(snapshot, loadout) {
     kicker: "Primary",
     title: weapon ? weapon.label : "No Weapon",
     subtitle: weapon ? `${formatNumber(weapon.count)} stored` : "Assign weapon",
+    image: getItemImage(weapon),
+    fallback: weapon ? weapon.label.slice(0, 2).toUpperCase() : "W",
   });
 
   renderGearSlot(ammoSlot, {
@@ -315,6 +444,8 @@ function renderLoadoutSlots(snapshot, loadout) {
     kicker: "Ammo",
     title: ammo ? ammo.label : "Empty",
     subtitle: ammo ? `${formatNumber(ammo.count)} rounds` : "0 rounds",
+    image: getItemImage(ammo),
+    fallback: "AM",
   });
 
   renderGearSlot(gearSlot, {
@@ -322,6 +453,7 @@ function renderLoadoutSlots(snapshot, loadout) {
     kicker: "Rig",
     title: "Starter Harness",
     subtitle: "Light carry / default",
+    fallback: "RG",
   });
 
   setText(kitSummary, weapon && ammo ? "Raid Ready" : "Needs Review");
@@ -563,10 +695,10 @@ if (new URLSearchParams(window.location.search).has("demo")) {
       canSell: true,
       raidActive: false,
       stash: [
-        { label: "Military Circuit", count: 2, value: 900, weight: 90, type: "loot" },
-        { label: "Medical Supplies", count: 4, value: 350, weight: 70, type: "loot" },
-        { label: "Pistol", count: 1, value: 0, weight: 650, type: "weapon" },
-        { label: "9mm Ammo", count: 48, value: 0, weight: 8, type: "ammo" },
+        { label: "Military Circuit", count: 2, value: 900, weight: 90, type: "loot", image: "electronics.svg" },
+        { label: "Medical Supplies", count: 4, value: 350, weight: 70, type: "loot", image: "medikit.png" },
+        { label: "Pistol", count: 1, value: 0, weight: 650, type: "weapon", image: "weapon_pistol.png", width: 2, height: 1 },
+        { label: "9mm Ammo", count: 48, value: 0, weight: 8, type: "ammo", image: "ammo-9.png" },
       ],
     },
   });
