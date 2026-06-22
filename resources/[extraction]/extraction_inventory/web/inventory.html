@@ -29,61 +29,109 @@
   <main id="app" class="app" aria-hidden="true">
     <section class="shell">
       <div class="atmosphere" aria-hidden="true"></div>
-      <header class="hero">
-        <div>
-          <p class="eyebrow">LSX Armory</p>
-          <h1>Loadout Terminal</h1>
-          <span class="subtitle">Secure stash, raid bag and field kit overview.</span>
-        </div>
-        <div class="actions">
-          <button id="refreshButton" class="ghost" type="button">Refresh</button>
-          <button id="closeButton" class="ghost" type="button">Close</button>
+      <header class="inventory-nav">
+        <div class="brand-chip">LSX</div>
+        <nav aria-label="Inventory tabs">
+          <span class="is-active">Inventory</span>
+          <span>Logbook</span>
+          <span>System</span>
+        </nav>
+        <div class="resource-strip">
+          <span><b>$</b><strong id="stashValueMeta">$0</strong></span>
+          <span><b>WT</b><strong id="carryWeightMeta">0 / 0</strong></span>
+          <span><b>MODE</b><strong id="modeMeta">Safehouse</strong></span>
         </div>
       </header>
 
-      <section class="summary-strip" aria-label="Inventory summary">
-        <article>
-          <span>Secured Value</span>
-          <strong id="stashValueMeta">$0</strong>
-        </article>
-        <article>
-          <span>Carry Weight</span>
-          <strong id="carryWeightMeta">0 / 0</strong>
-        </article>
-        <article>
-          <span>Mode</span>
-          <strong id="modeMeta">Safehouse</strong>
-        </article>
-      </section>
-
-      <section class="layout">
-        <article class="panel">
-          <div class="panel-head">
+      <section class="inventory-layout">
+        <aside class="stash-panel panel">
+          <div class="panel-head large">
             <div>
               <p class="panel-kicker">Secure Storage</p>
               <h2>Stash</h2>
+              <span id="stashCountMeta" class="panel-subtitle">0 items</span>
             </div>
-            <button id="sellButton" class="accent" type="button">Sell All</button>
+            <button id="sellButton" class="accent" type="button">Sell Loot</button>
           </div>
-          <div id="stashList" class="list tetris-grid"></div>
-        </article>
+          <div class="stash-toolbar">
+            <span>Category</span>
+            <button id="refreshButton" class="ghost tiny" type="button">Refresh</button>
+          </div>
+          <div class="stash-browser">
+            <div class="category-rail" aria-hidden="true">
+              <span class="is-active">ALL</span>
+              <span>LOOT</span>
+              <span>WPN</span>
+              <span>AMMO</span>
+              <span>MED</span>
+              <span>MOD</span>
+            </div>
+            <div id="stashList" class="list tetris-grid"></div>
+          </div>
+        </aside>
 
-        <article class="panel">
-          <div class="panel-head">
+        <section class="loadout-panel panel">
+          <div class="panel-head large">
             <div>
               <p id="secondaryKicker" class="panel-kicker">Raid Ready</p>
               <h2 id="secondaryTitle">Loadout</h2>
+              <span id="loadoutValueMeta" class="panel-subtitle">$0 kit value</span>
             </div>
             <div id="bagMeta" class="meta-pill">Ready</div>
           </div>
-          <div id="bagList" class="list tetris-grid"></div>
-        </article>
+
+          <div class="loadout-grid">
+            <section class="equipment-column">
+              <div class="section-head"><span>Equipment</span><strong>2 / 4</strong></div>
+              <article class="equipment-card rig-card">
+                <span>Rig</span>
+                <strong>Starter Harness</strong>
+                <em>100 / 100</em>
+              </article>
+              <article class="equipment-card weapon-card">
+                <span>Primary Slot</span>
+                <strong>Field Weapon</strong>
+                <em>From stash loadout</em>
+              </article>
+              <article class="equipment-card weapon-card muted">
+                <span>Secondary Slot</span>
+                <strong>Empty</strong>
+                <em>Future preset slot</em>
+              </article>
+            </section>
+
+            <section class="backpack-column">
+              <div class="section-head"><span>Backpack</span><strong id="bagSlotMeta">0 / 0</strong></div>
+              <div id="bagList" class="list tetris-grid"></div>
+            </section>
+
+            <aside class="utility-column">
+              <div class="section-head"><span>Quick Use</span><strong>2 / 4</strong></div>
+              <div class="quick-grid" aria-hidden="true">
+                <span>MED</span>
+                <span>AMMO</span>
+                <span></span>
+                <span></span>
+              </div>
+              <div class="section-head safe-head"><span>Safe Pocket</span><strong>0 / 1</strong></div>
+              <div class="safe-pocket" aria-hidden="true">LOCKED</div>
+            </aside>
+          </div>
+        </section>
       </section>
 
       <section id="dropZone" class="drop-zone" aria-label="Drop item zone">
         <strong>Drop Zone</strong>
         <span>Drag raid bag items here to drop one on the ground.</span>
       </section>
+
+      <footer class="inventory-footer">
+        <span><kbd>ESC</kbd> Back</span>
+        <span class="is-active"><kbd>I</kbd> Inventory</span>
+        <span><kbd>SHIFT</kbd> Quick Move</span>
+        <span><kbd>ALT</kbd> Split Stack</span>
+        <button id="closeButton" class="ghost tiny" type="button">Close</button>
+      </footer>
     </section>
   </main>
 

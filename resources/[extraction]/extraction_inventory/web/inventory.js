@@ -11,6 +11,9 @@ const carryWeightMeta = document.getElementById("carryWeightMeta");
 const modeMeta = document.getElementById("modeMeta");
 const secondaryKicker = document.getElementById("secondaryKicker");
 const secondaryTitle = document.getElementById("secondaryTitle");
+const stashCountMeta = document.getElementById("stashCountMeta");
+const loadoutValueMeta = document.getElementById("loadoutValueMeta");
+const bagSlotMeta = document.getElementById("bagSlotMeta");
 const dropZone = document.getElementById("dropZone");
 
 let currentSnapshot = null;
@@ -253,6 +256,9 @@ function render(snapshot) {
   const stashEntries = (snapshot.stash || []).filter((entry) => !isLoadoutItem(entry));
   const loadoutEntries = (snapshot.stash || []).filter(isLoadoutItem);
   const secondaryEntries = snapshot.raidActive ? snapshot.carry : loadoutEntries;
+  const stashItemCount = stashEntries.reduce((total, entry) => total + Number(entry.count || 0), 0);
+  const secondaryItemCount = secondaryEntries.reduce((total, entry) => total + Number(entry.count || 0), 0);
+  const loadoutValue = loadoutEntries.reduce((total, entry) => total + (Number(entry.value || 0) * Number(entry.count || 0)), 0);
 
   renderGrid(stashList, stashEntries, { container: snapshot.containers?.stash });
   renderGrid(bagList, secondaryEntries, {
@@ -270,6 +276,9 @@ function render(snapshot) {
   setText(stashValueMeta, `$${formatNumber(snapshot.stashValue)}`);
   setText(carryWeightMeta, `${formatNumber(snapshot.carryWeight)} / ${formatNumber(snapshot.maxCarryWeight)}`);
   setText(modeMeta, snapshot.raidActive ? "In Raid" : "Safehouse");
+  setText(stashCountMeta, `${formatNumber(stashItemCount)} secured items`);
+  setText(loadoutValueMeta, `$${formatNumber(loadoutValue)} kit value`);
+  setText(bagSlotMeta, `${formatNumber(secondaryItemCount)} stacks`);
 
   sellButton.disabled = !snapshot.canSell || stashEntries.length === 0;
   dropZone.classList.toggle("is-enabled", snapshot.raidActive === true);

@@ -841,6 +841,121 @@ dd { margin: 0; color: var(--paper); }
   font-style: normal;
   line-height: 1.25;
 }
+
+.armory-layout {
+  grid-template-columns: minmax(280px, 0.78fr) minmax(420px, 1.28fr) minmax(300px, 0.86fr);
+}
+
+.operator-kit-panel,
+.stash-terminal,
+.loadout-terminal {
+  border-radius: 9px;
+  background:
+    radial-gradient(circle at 18% 100%, rgba(123, 185, 198, 0.08), transparent 34%),
+    linear-gradient(180deg, rgba(5, 8, 16, 0.88), rgba(3, 4, 7, 0.84));
+}
+
+.mini-inventory-browser {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 9px;
+  margin-top: 10px;
+}
+
+.mini-category-rail {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+}
+
+.mini-category-rail span {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: rgba(239, 231, 207, 0.58);
+  background: rgba(238, 225, 190, 0.08);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+
+.mini-category-rail .is-active {
+  color: #070909;
+  background: var(--paper);
+}
+
+.crate-grid {
+  --slot: 46px;
+  max-height: 206px;
+}
+
+.crate-grid.compact {
+  max-height: 142px;
+}
+
+.grid-shell {
+  border-radius: 6px;
+  background:
+    linear-gradient(rgba(238, 225, 190, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(238, 225, 190, 0.025) 1px, transparent 1px),
+    rgba(0, 0, 0, 0.2);
+}
+
+.lobby-item-card {
+  border-radius: 5px;
+  clip-path: none;
+  background:
+    radial-gradient(circle at 14% 100%, rgba(123, 185, 198, 0.16), transparent 38%),
+    rgba(238, 225, 190, 0.045);
+}
+
+.mini-utility-grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 9px 0;
+}
+
+.mini-utility-grid div {
+  min-height: 52px;
+  padding: 9px;
+  border: 1px solid rgba(238, 225, 190, 0.13);
+  border-radius: 6px;
+  background: rgba(238, 225, 190, 0.035);
+}
+
+.mini-utility-grid span,
+.mini-utility-grid strong {
+  display: block;
+}
+
+.mini-utility-grid span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.mini-utility-grid strong {
+  margin-top: 7px;
+  color: var(--paper);
+  font-size: 16px;
+}
+
+.loadout-note {
+  min-height: 58px;
+}
+
+.loadout-note strong {
+  font-size: 17px;
+}
 .inventory-preview { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .panel { min-height: 112px; padding: 12px; }
 .panel-head { justify-content: space-between; }
