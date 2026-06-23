@@ -40,7 +40,7 @@ Third-party dependencies are kept outside this folder in `resources/[overextende
 - `oxmysql`
   Installed MySQL bridge. Requires `mysql_connection_string` before enabling.
 - `ox_core`
-  Installed Overextended core framework. Use only for the controlled `ox_inventory` test stack after MySQL is configured.
+  Installed Overextended core framework. Use only as the controlled `ox_inventory` bridge after MySQL is configured. LSX must keep ox character select, death, hospital blips, accounts, groups, jobs, and vehicle ownership out of the gameplay loop.
 - `ox_inventory`
   Installed Overextended inventory. A local LSX visual theme and LSX loot item definitions have been applied for testing. Requires `oxmysql`, `ox_core`, and MySQL schema before enabling.
 
@@ -64,6 +64,7 @@ Admin tooling is kept outside this folder in `resources/[admin]`:
 - Lobby settings are currently client-side KVP preferences. `extraction_lobby` sends updates through `extraction_hud:client:setSettings`.
 - Extraction points should remain believable city exits such as tunnels, channels, highway ramps, ferry/boat ramps, rail exits, and service gates. Do not place extracts directly beside loot clusters unless the encounter is intentionally balanced around that risk.
 - `ox_lib` is enabled. `oxmysql`, `ox_core`, and `ox_inventory` are downloaded into `resources/[overextended]` but intentionally not auto-started yet.
+- `ox_core` RP-facing systems must stay disabled if the ox inventory stack is tested: `ox:characterSelect 0`, `ox:deathSystem 0`, `ox:hospitalBlips 0`, and an LSX safehouse `ox:spawnLocation` fallback.
 - EasyAdmin is downloaded into `resources/[admin]/EasyAdmin` and enabled as the current admin menu.
 - User-facing text and documentation should stay in English for easier external collaboration.
 - Internal item keys should remain stable because saved player data references them.
@@ -85,4 +86,5 @@ Admin tooling is kept outside this folder in `resources/[admin]`:
 - Prefer provider/adapters for third-party systems so the core raid loop stays portable.
 - Keep player-facing strings in config where possible.
 - Do not rename item keys without a migration for `data/players.json`.
-- `ox_inventory` should be tested through `ox_core`, not ESX/QBCore. Import `resources/[overextended]/ox_core/sql/install.sql`, set `mysql_connection_string`, then start `oxmysql`, `ox_core`, and `ox_inventory` before attempting a gameplay migration.
+- `ox_inventory` should be tested through `ox_core`, not ESX/QBCore. Import `resources/[overextended]/ox_core/sql/install.sql`, set `mysql_connection_string`, then start `oxmysql`, `ox_core`, and `ox_inventory` with the no-RP convars from `server.example.cfg` before attempting a gameplay migration.
+- Do not wire LSX features to ox jobs, groups, hospitals, character selection, vehicle ownership, or account systems. If ox inventory becomes permanent, build an LSX adapter or maintain a fork instead of allowing hidden RP framework coupling.

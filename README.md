@@ -52,6 +52,8 @@ These are not committed to this repo. Install Overextended resources into `resou
 
 `ox_lib` and `EasyAdmin` are enabled in `server.cfg` right now. `ox_core` is installed so `ox_inventory` can be tested with `inventory:framework "ox"` after MySQL is configured. See `docs/OX_INVENTORY_TEST.md` for the test plan and `docs/EASYADMIN_SETUP.md` for the local admin setup.
 
+`ox_core` is treated as an inventory bridge only. Its RP-facing character, death, hospital, job/group, account, and vehicle ownership flows should stay disabled or unused so LSX remains a standalone extraction game.
+
 ## Server Config
 
 The live `server.cfg` is intentionally ignored because it contains machine-specific and private values such as `sv_licenseKey`.

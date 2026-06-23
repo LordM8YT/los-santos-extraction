@@ -2,6 +2,8 @@
 
 This project can test `ox_inventory` through `ox_core` without replacing the current extraction inventory yet.
 
+`ox_core` is not a gameplay framework for LSX. It is only installed as the lightest available bridge for testing `ox_inventory` without ESX/QBCore.
+
 ## Installed Local Dependencies
 
 - `resources/[overextended]/ox_lib`
@@ -27,9 +29,24 @@ setr inventory:framework "ox"
 setr inventory:screenblur false
 setr inventory:keys '["TAB"]'
 setr ox:characterSelect 0
+setr ox:characterSlots 1
 setr ox:deathSystem 0
+setr ox:hospitalBlips 0
+setr ox:debug 0
+setr ox:spawnLocation "[-1040.31, -2732.27, 20.17, 330.0]"
 ensure ox_inventory
 ```
+
+## RP Systems Disabled For LSX
+
+Keep these ox systems off when testing:
+
+- `ox:characterSelect 0` so LSX keeps control of lobby, operator selection, and raid entry.
+- `ox:deathSystem 0` so LSX owns death, MIA, loadout loss, death drops, and extraction results.
+- `ox:hospitalBlips 0` so no hospital/RP markers appear on the map.
+- `ox:spawnLocation` points at the LSX safehouse fallback, not an RP spawn.
+
+Do not build gameplay against ox accounts, groups, vehicle ownership, jobs, hospitals, or character flows. If the project commits to `ox_inventory` long term, the clean production path is a small LSX inventory adapter or a maintained `ox_inventory` fork that removes the remaining ox_core assumptions.
 
 ## Migration Rule
 
