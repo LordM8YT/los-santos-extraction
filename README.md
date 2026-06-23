@@ -8,7 +8,7 @@ A standalone FiveM PvPvE extraction shooter prototype. The goal is to build a ga
 - FiveM natives
 - ox_lib
 - Custom standalone inventory/HUD/prototype persistence
-- oxmysql and ox_inventory are installed locally, but intentionally not enabled yet
+- oxmysql, ox_core, and ox_inventory are installed locally, but intentionally not enabled yet
 - EasyAdmin is installed locally and enabled as the admin menu
 
 ## Resource Layout
@@ -46,10 +46,11 @@ These are not committed to this repo. Install Overextended resources into `resou
 
 - `ox_lib` v3.37.2
 - `oxmysql` v2.14.1
+- `ox_core` v1.5.14
 - `ox_inventory` v2.47.7
 - `EasyAdmin` v7.53 pinned to `d732e54626dc362dbd1e42121c0b243eacbf24e4`
 
-`ox_lib` and `EasyAdmin` are enabled in `server.cfg` right now. Do not enable `ox_inventory` until a supported framework bridge or custom bridge strategy is chosen. See `docs/EASYADMIN_SETUP.md` for the local admin setup.
+`ox_lib` and `EasyAdmin` are enabled in `server.cfg` right now. `ox_core` is installed so `ox_inventory` can be tested with `inventory:framework "ox"` after MySQL is configured. See `docs/OX_INVENTORY_TEST.md` for the test plan and `docs/EASYADMIN_SETUP.md` for the local admin setup.
 
 ## Server Config
 
