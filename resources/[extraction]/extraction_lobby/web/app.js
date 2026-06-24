@@ -66,6 +66,9 @@ let deployLocked = false;
 let currentSettings = {
   minimapMode: "always",
   hudDensity: "full",
+  firstPersonMode: "raid",
+  crosshairMode: "dynamic",
+  helmetOverlay: "on",
 };
 
 const XP_PER_LEVEL = 700;

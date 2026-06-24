@@ -6,6 +6,9 @@ local settingsKvpKey = 'extraction_lobby:client_settings'
 local clientSettings = {
     minimapMode = 'always',
     hudDensity = 'full',
+    firstPersonMode = 'raid',
+    crosshairMode = 'dynamic',
+    helmetOverlay = 'on',
 }
 
 local function fallbackSnapshot()
@@ -53,6 +56,9 @@ local function loadSettings()
 
     clientSettings.minimapMode = decoded.minimapMode or clientSettings.minimapMode
     clientSettings.hudDensity = decoded.hudDensity or clientSettings.hudDensity
+    clientSettings.firstPersonMode = decoded.firstPersonMode or clientSettings.firstPersonMode
+    clientSettings.crosshairMode = decoded.crosshairMode or clientSettings.crosshairMode
+    clientSettings.helmetOverlay = decoded.helmetOverlay or clientSettings.helmetOverlay
 end
 
 local function saveSettings()
@@ -68,6 +74,12 @@ local function updateSetting(key, value)
         clientSettings.minimapMode = value
     elseif key == 'hudDensity' and (value == 'full' or value == 'minimal') then
         clientSettings.hudDensity = value
+    elseif key == 'firstPersonMode' and (value == 'raid' or value == 'off') then
+        clientSettings.firstPersonMode = value
+    elseif key == 'crosshairMode' and (value == 'dynamic' or value == 'off') then
+        clientSettings.crosshairMode = value
+    elseif key == 'helmetOverlay' and (value == 'on' or value == 'off') then
+        clientSettings.helmetOverlay = value
     else
         return false
     end

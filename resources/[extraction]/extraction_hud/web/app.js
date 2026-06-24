@@ -19,6 +19,10 @@ const defaultStatus = {
     health: 100,
     armor: 0,
     stamina: 100,
+    armed: false,
+    aiming: false,
+    sprinting: false,
+    firstPerson: false,
     heading: 0,
     cardinal: 'N',
     location: 'Unknown Sector',
@@ -28,11 +32,19 @@ const defaultStatus = {
     coords: { x: 0, y: 0, z: 0 },
     minimapVisible: false,
     minimapRangeMeters: 220,
+    combatView: {
+        helmetOverlay: false,
+        crosshairMode: 'dynamic',
+        forceFirstPerson: false,
+    },
 };
 
 const defaultSettings = {
     minimapMode: 'vehicle',
     hudDensity: 'full',
+    firstPersonMode: 'raid',
+    crosshairMode: 'dynamic',
+    helmetOverlay: 'on',
 };
 
 function clamp(value, min = 0, max = 100) {
@@ -203,6 +215,48 @@ function ProfilePanel({ profile }) {
     );
 }
 
+function HelmetOverlay({ status }) {
+    const combatView = status.combatView || {};
+
+    if (!status.active || !combatView.helmetOverlay) {
+        return null;
+    }
+
+    return e(
+        'section',
+        { className: 'helmet-overlay', 'aria-hidden': 'true' },
+        e('span', { className: 'helmet-glass helmet-glass-left' }),
+        e('span', { className: 'helmet-glass helmet-glass-right' }),
+        e('span', { className: 'helmet-noise' }),
+        e('span', { className: 'helmet-scanline' })
+    );
+}
+
+function CombatReticle({ status }) {
+    const combatView = status.combatView || {};
+
+    if (!status.active || combatView.crosshairMode === 'off' || status.inVehicle || !status.armed) {
+        return null;
+    }
+
+    const className = [
+        'combat-reticle',
+        status.aiming ? 'is-aiming' : '',
+        status.sprinting ? 'is-sprinting' : '',
+        status.firstPerson ? 'is-first-person' : '',
+    ].filter(Boolean).join(' ');
+
+    return e(
+        'section',
+        { className, 'aria-hidden': 'true' },
+        e('span', { className: 'reticle-dot' }),
+        e('span', { className: 'reticle-line reticle-line-top' }),
+        e('span', { className: 'reticle-line reticle-line-right' }),
+        e('span', { className: 'reticle-line reticle-line-bottom' }),
+        e('span', { className: 'reticle-line reticle-line-left' })
+    );
+}
+
 function App() {
     const [raid, setRaid] = useState(defaultRaid);
     const [progress, setProgress] = useState(defaultProgress);
@@ -286,6 +340,8 @@ function App() {
     return e(
         'main',
         { className: 'hud' },
+        e(HelmetOverlay, { status }),
+        e(CombatReticle, { status }),
         e(RaidBar, { raid, status }),
         e('div', { className: 'bottom-left' }, e(ScannerPanel, { status }), e(VitalsPanel, { status })),
         e(ProgressPanel, { progress }),

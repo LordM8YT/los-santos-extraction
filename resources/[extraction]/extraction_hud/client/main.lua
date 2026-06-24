@@ -22,12 +22,17 @@ local hudHiddenComponents = {
 }
 
 local nextMinimapEnforce = 0
+local nextCameraEnforce = 0
 local send
 local settingsKvpKey = 'extraction_hud:client_settings'
+local combatViewConfig = ExtractionHudConfig and ExtractionHudConfig.CombatView or {}
 
 local hudSettings = {
     minimapMode = 'always',
     hudDensity = 'full',
+    firstPersonMode = combatViewConfig.defaultFirstPersonMode or 'raid',
+    crosshairMode = combatViewConfig.defaultCrosshairMode or 'dynamic',
+    helmetOverlay = combatViewConfig.defaultHelmetOverlay or 'on',
 }
 
 local raidState = {
@@ -39,6 +44,7 @@ local raidState = {
 }
 
 local lastStatusPayload = ''
+local previousPedCamViewMode
 
 local function loadClientSettings()
     local encoded = GetResourceKvpString(settingsKvpKey)
@@ -54,6 +60,9 @@ local function loadClientSettings()
 
     hudSettings.minimapMode = decoded.minimapMode or hudSettings.minimapMode
     hudSettings.hudDensity = decoded.hudDensity or hudSettings.hudDensity
+    hudSettings.firstPersonMode = decoded.firstPersonMode or hudSettings.firstPersonMode
+    hudSettings.crosshairMode = decoded.crosshairMode or hudSettings.crosshairMode
+    hudSettings.helmetOverlay = decoded.helmetOverlay or hudSettings.helmetOverlay
 end
 
 local function saveClientSettings()
@@ -71,6 +80,18 @@ local function applyClientSettings(settings)
 
     if settings.hudDensity == 'full' or settings.hudDensity == 'minimal' then
         hudSettings.hudDensity = settings.hudDensity
+    end
+
+    if settings.firstPersonMode == 'raid' or settings.firstPersonMode == 'off' then
+        hudSettings.firstPersonMode = settings.firstPersonMode
+    end
+
+    if settings.crosshairMode == 'dynamic' or settings.crosshairMode == 'off' then
+        hudSettings.crosshairMode = settings.crosshairMode
+    end
+
+    if settings.helmetOverlay == 'on' or settings.helmetOverlay == 'off' then
+        hudSettings.helmetOverlay = settings.helmetOverlay
     end
 
     saveClientSettings()
@@ -140,6 +161,33 @@ local function applyMinimapCleanup(showRadar)
     end
 end
 
+local function shouldForceFirstPerson()
+    if hudSettings.firstPersonMode ~= 'raid' or not raidState.active then
+        return false
+    end
+
+    local ped = PlayerPedId()
+
+    return DoesEntityExist(ped)
+        and not IsEntityDead(ped)
+        and not IsPedInAnyVehicle(ped, false)
+end
+
+local function applyCombatCameraProfile()
+    local config = ExtractionHudConfig and ExtractionHudConfig.CombatView or {}
+    local now = GetGameTimer()
+
+    if now < nextCameraEnforce then
+        return
+    end
+
+    nextCameraEnforce = now + (config.firstPersonEnforceIntervalMs or 300)
+
+    if shouldForceFirstPerson() and GetFollowPedCamViewMode() ~= 4 then
+        SetFollowPedCamViewMode(4)
+    end
+end
+
 function send(action, payload)
     SendNUIMessage({
         action = action,
@@ -171,6 +219,10 @@ local function getPlayerStatus()
         health = math.max(0, GetEntityHealth(ped) - 100),
         armor = GetPedArmour(ped),
         stamina = math.floor(GetPlayerSprintStaminaRemaining(PlayerId())),
+        armed = IsPedArmed(ped, 4),
+        aiming = IsPlayerFreeAiming(PlayerId()),
+        sprinting = IsPedSprinting(ped),
+        firstPerson = GetFollowPedCamViewMode() == 4,
         heading = math.floor(heading),
         cardinal = getHeadingCardinal(heading),
         location = streetName ~= '' and streetName or 'Unknown Sector',
@@ -184,6 +236,11 @@ local function getPlayerStatus()
         },
         minimapVisible = shouldShowCustomMinimap(),
         minimapRangeMeters = config.scannerRangeMeters or 220,
+        combatView = {
+            helmetOverlay = hudSettings.helmetOverlay == 'on',
+            crosshairMode = hudSettings.crosshairMode,
+            forceFirstPerson = shouldForceFirstPerson(),
+        },
     }
 end
 
@@ -254,6 +311,7 @@ RegisterNetEvent('extraction_hud:client:progress', function(payload)
 end)
 
 RegisterNetEvent('standalone_extraction:client:startRaid', function(payload)
+    previousPedCamViewMode = GetFollowPedCamViewMode()
     raidState.active = true
     raidState.expiresAt = GetGameTimer() + ((payload.durationSeconds or 0) * 1000)
     raidState.carryValue = 0
@@ -281,6 +339,12 @@ RegisterNetEvent('standalone_extraction:client:endRaid', function()
     send('raid', { active = false })
     send('hint', { text = '' })
     send('progress', { active = false })
+
+    if previousPedCamViewMode and previousPedCamViewMode ~= 4 and GetFollowPedCamViewMode() == 4 then
+        SetFollowPedCamViewMode(previousPedCamViewMode)
+    end
+
+    previousPedCamViewMode = nil
 end)
 
 CreateThread(function()
@@ -301,6 +365,7 @@ CreateThread(function()
         end
 
         applyMinimapCleanup(shouldShowNativeRadar())
+        applyCombatCameraProfile()
 
         Wait(0)
     end

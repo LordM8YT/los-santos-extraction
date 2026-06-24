@@ -1,4 +1,10 @@
 ExtractionHudConfig = {
+    CombatView = {
+        defaultFirstPersonMode = 'raid', -- raid | off
+        defaultCrosshairMode = 'dynamic', -- dynamic | off
+        defaultHelmetOverlay = 'on', -- on | off
+        firstPersonEnforceIntervalMs = 300,
+    },
     Minimap = {
         enabled = true,
         useNativeRadar = true,

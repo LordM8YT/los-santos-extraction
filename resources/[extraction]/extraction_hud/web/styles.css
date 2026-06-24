@@ -49,6 +49,176 @@ html.hud-closed body {
     display: none !important;
 }
 
+.helmet-overlay {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+}
+
+.helmet-overlay::before,
+.helmet-overlay::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+}
+
+.helmet-overlay::before {
+    background:
+        radial-gradient(circle at 50% 48%, transparent 0 42%, rgba(0, 0, 0, 0.16) 62%, rgba(0, 0, 0, 0.42) 100%),
+        linear-gradient(90deg, rgba(3, 7, 7, 0.32), transparent 18% 82%, rgba(3, 7, 7, 0.32));
+}
+
+.helmet-overlay::after {
+    border: 1px solid rgba(174, 245, 98, 0.08);
+    box-shadow:
+        inset 0 0 6rem rgba(0, 0, 0, 0.34),
+        inset 0 -4rem 7rem rgba(0, 0, 0, 0.28);
+}
+
+.helmet-glass {
+    position: absolute;
+    top: 4vh;
+    bottom: 4vh;
+    width: 16vw;
+    border-color: rgba(174, 245, 98, 0.11);
+    opacity: 0.74;
+}
+
+.helmet-glass-left {
+    left: 2vw;
+    border-left: 2px solid;
+    border-radius: 52% 0 0 52%;
+    box-shadow: inset 2.2rem 0 3.2rem rgba(120, 202, 255, 0.05);
+}
+
+.helmet-glass-right {
+    right: 2vw;
+    border-right: 2px solid;
+    border-radius: 0 52% 52% 0;
+    box-shadow: inset -2.2rem 0 3.2rem rgba(120, 202, 255, 0.05);
+}
+
+.helmet-noise {
+    position: absolute;
+    inset: 0;
+    opacity: 0.12;
+    background-image:
+        linear-gradient(transparent 50%, rgba(238, 248, 233, 0.05) 51%),
+        radial-gradient(circle at 30% 20%, rgba(174, 245, 98, 0.11), transparent 20%),
+        radial-gradient(circle at 70% 80%, rgba(120, 202, 255, 0.08), transparent 18%);
+    background-size: 100% 4px, 100% 100%, 100% 100%;
+    mix-blend-mode: screen;
+}
+
+.helmet-scanline {
+    position: absolute;
+    right: 8vw;
+    bottom: 6vh;
+    width: 14vw;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(174, 245, 98, 0.32), transparent);
+    animation: helmet-pulse 2.8s ease-in-out infinite;
+}
+
+.combat-reticle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 4.4rem;
+    height: 4.4rem;
+    transform: translate(-50%, -50%);
+    opacity: 0.92;
+    filter: drop-shadow(0 0 8px rgba(174, 245, 98, 0.45));
+}
+
+.reticle-dot,
+.reticle-line {
+    position: absolute;
+    background: rgba(238, 248, 233, 0.88);
+}
+
+.reticle-dot {
+    top: 50%;
+    left: 50%;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 12px rgba(174, 245, 98, 0.86);
+}
+
+.reticle-line {
+    transition: transform 120ms ease, opacity 120ms ease;
+}
+
+.reticle-line-top,
+.reticle-line-bottom {
+    left: 50%;
+    width: 1px;
+    height: 0.72rem;
+    transform: translateX(-50%);
+}
+
+.reticle-line-left,
+.reticle-line-right {
+    top: 50%;
+    width: 0.72rem;
+    height: 1px;
+    transform: translateY(-50%);
+}
+
+.reticle-line-top {
+    top: 0.74rem;
+}
+
+.reticle-line-bottom {
+    bottom: 0.74rem;
+}
+
+.reticle-line-left {
+    left: 0.74rem;
+}
+
+.reticle-line-right {
+    right: 0.74rem;
+}
+
+.combat-reticle.is-aiming .reticle-line-top {
+    transform: translate(-50%, 0.24rem);
+}
+
+.combat-reticle.is-aiming .reticle-line-bottom {
+    transform: translate(-50%, -0.24rem);
+}
+
+.combat-reticle.is-aiming .reticle-line-left {
+    transform: translate(0.24rem, -50%);
+}
+
+.combat-reticle.is-aiming .reticle-line-right {
+    transform: translate(-0.24rem, -50%);
+}
+
+.combat-reticle.is-sprinting {
+    opacity: 0.34;
+}
+
+.combat-reticle.is-sprinting .reticle-line-top {
+    transform: translate(-50%, -0.34rem);
+}
+
+.combat-reticle.is-sprinting .reticle-line-bottom {
+    transform: translate(-50%, 0.34rem);
+}
+
+.combat-reticle.is-sprinting .reticle-line-left {
+    transform: translate(-0.34rem, -50%);
+}
+
+.combat-reticle.is-sprinting .reticle-line-right {
+    transform: translate(0.34rem, -50%);
+}
+
 .top-rig {
     position: absolute;
     top: 2.2vh;
@@ -477,6 +647,19 @@ html.hud-minimal .raid-timer {
 
     to {
         transform: rotate(360deg);
+    }
+}
+
+@keyframes helmet-pulse {
+    0%,
+    100% {
+        opacity: 0.18;
+        transform: translateY(0);
+    }
+
+    50% {
+        opacity: 0.58;
+        transform: translateY(-0.35rem);
     }
 }
 
