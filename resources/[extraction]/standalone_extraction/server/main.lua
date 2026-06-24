@@ -4,6 +4,7 @@ local SAVE_FILE = 'data/players.json'
 local profiles = {}
 local activeRaids = {}
 local activeSessions = {}
+local activeLootStashes = {}
 local queuedPlayers = {}
 local queuedLookup = {}
 local raidStartLocks = {}
@@ -156,6 +157,20 @@ local function clearOxInventory(source)
     end
 end
 
+local function setOxMaxWeight(source, maxWeight)
+    if not isOxInventoryEnabled() then
+        return
+    end
+
+    pcall(function()
+        exports.ox_inventory:SetMaxWeight(source, math.max(1000, math.floor(tonumber(maxWeight) or 30000)))
+    end)
+end
+
+local function resetOxMaxWeight(source)
+    setOxMaxWeight(source, GetConvarInt('inventory:weight', 30000))
+end
+
 local function getWeaponItems()
     if GetResourceState('extraction_weapons') ~= 'started' then
         return {}
@@ -217,6 +232,61 @@ local function newLootBag()
     end
 
     return bag
+end
+
+local function getLsxItemFromOxSlot(slot)
+    if type(slot) ~= 'table' then
+        return nil
+    end
+
+    if type(slot.metadata) == 'table' and type(slot.metadata.lsxItem) == 'string' then
+        return slot.metadata.lsxItem
+    end
+
+    for itemName in pairs(getItemDefinitions()) do
+        if getOxItemName(itemName) == slot.name then
+            return itemName
+        end
+    end
+
+    return nil
+end
+
+local function getOxInventoryContents(inventoryId)
+    local contents = newLootBag()
+
+    if not isOxInventoryEnabled() or not inventoryId then
+        return contents
+    end
+
+    local ok, items = pcall(function()
+        return exports.ox_inventory:GetInventoryItems(inventoryId)
+    end)
+
+    if not ok or type(items) ~= 'table' then
+        return contents
+    end
+
+    for _, slot in pairs(items) do
+        local itemName = getLsxItemFromOxSlot(slot)
+        local count = tonumber(slot and slot.count) or 0
+
+        if itemName and contents[itemName] ~= nil and count > 0 then
+            contents[itemName] = contents[itemName] + count
+        end
+    end
+
+    return contents
+end
+
+local function removeOxInventory(inventoryId)
+    if not isOxInventoryEnabled() or not inventoryId then
+        return
+    end
+
+    pcall(function()
+        exports.ox_inventory:RemoveInventory(inventoryId)
+    end)
 end
 
 local function defaultProfile()
@@ -1135,6 +1205,257 @@ local function rollLootItem(tier)
     return lootTable[#lootTable].name
 end
 
+local function getCrateRollCount(tier)
+    if tier == 'high' then
+        return math.random(4, 7)
+    end
+
+    if tier == 'mid' then
+        return math.random(3, 5)
+    end
+
+    return math.random(2, 4)
+end
+
+local function getCrateInventoryLimits(tier)
+    if tier == 'high' then
+        return 14, 22000
+    end
+
+    if tier == 'mid' then
+        return 10, 15000
+    end
+
+    return 8, 9000
+end
+
+local function rollCrateLoot(tier)
+    local loot = newLootBag()
+
+    for _ = 1, getCrateRollCount(tier) do
+        local itemName = rollLootItem(tier)
+        local itemData = itemName and getItemDefinition(itemName)
+
+        if itemData then
+            local minAmount = math.max(1, math.floor(tonumber(itemData.min) or 1))
+            local maxAmount = math.max(minAmount, math.floor(tonumber(itemData.max) or minAmount))
+            loot[itemName] = (tonumber(loot[itemName]) or 0) + math.random(minAmount, maxAmount)
+        end
+    end
+
+    return loot
+end
+
+local function buildOxStashItems(loot)
+    local items = {}
+
+    for itemName, count in pairs(loot) do
+        count = tonumber(count) or 0
+
+        if count > 0 then
+            local itemData = getItemDefinition(itemName) or {}
+
+            items[#items + 1] = {
+                getOxItemName(itemName),
+                count,
+                {
+                    lsxItem = itemName,
+                    label = itemData.label,
+                    source = 'loot_crate',
+                },
+            }
+        end
+    end
+
+    table.sort(items, function(left, right)
+        return tostring(left[1]) < tostring(right[1])
+    end)
+
+    return items
+end
+
+local function isLootEmpty(loot)
+    return not hasLoot(loot)
+end
+
+local function markLootSpotEmpty(session, spotId)
+    session.lootedSpots[spotId] = true
+
+    broadcastSession(session, 'standalone_extraction:client:lootSpotEmptied', {
+        spotId = spotId,
+    })
+end
+
+local function deleteLootStash(stashId)
+    local stash = stashId and activeLootStashes[stashId]
+    if not stash then
+        return
+    end
+
+    local session = getSession(stash.sessionId)
+    if session and session.lootStashes then
+        session.lootStashes[stash.spotId] = nil
+    end
+
+    activeLootStashes[stashId] = nil
+    removeOxInventory(stashId)
+end
+
+local function deleteSessionLootStashes(session)
+    if not session or type(session.lootStashes) ~= 'table' then
+        return
+    end
+
+    local stashIds = {}
+
+    for _, stashId in pairs(session.lootStashes) do
+        stashIds[#stashIds + 1] = stashId
+    end
+
+    for _, stashId in ipairs(stashIds) do
+        deleteLootStash(stashId)
+    end
+
+    session.lootStashes = {}
+end
+
+local function applyLootDeltaToRaid(source, stash)
+    local raid = getRaid(source)
+    local session = raid and getSession(raid.sessionId)
+
+    if not raid or not session or session.id ~= stash.sessionId then
+        return
+    end
+
+    local remaining = getOxInventoryContents(stash.id)
+    local totalTakenValue = 0
+    local totalTakenCount = 0
+
+    for itemName in pairs(getItemDefinitions()) do
+        local previous = tonumber(stash.lastContents[itemName]) or 0
+        local current = tonumber(remaining[itemName]) or 0
+        local delta = previous - current
+
+        if delta ~= 0 then
+            raid.carry[itemName] = math.max(0, (tonumber(raid.carry[itemName]) or 0) + delta)
+
+            if delta > 0 then
+                local itemData = getItemDefinition(itemName) or {}
+                totalTakenCount = totalTakenCount + delta
+                totalTakenValue = totalTakenValue + (delta * (tonumber(itemData.value) or 0))
+            end
+        end
+    end
+
+    stash.lastContents = remaining
+
+    TriggerClientEvent('standalone_extraction:client:updateCarry', source, {
+        carry = buildLootList(raid.carry),
+        carryValue = getLootValue(raid.carry),
+        carryWeight = getLootWeight(raid.carry),
+        maxCarryWeight = Config.Raid.maxCarryWeight,
+    })
+
+    if totalTakenCount > 0 then
+        notify(source, ('Secured %s item(s) from %s worth $%s.'):format(totalTakenCount, stash.label, totalTakenValue))
+    end
+
+    sendInventorySnapshot(source, false)
+
+    if isLootEmpty(remaining) then
+        markLootSpotEmpty(session, stash.spotId)
+        TriggerClientEvent('standalone_extraction:client:lootResult', source, {
+            spotId = stash.spotId,
+            label = stash.label,
+            amount = totalTakenCount,
+            carry = buildLootList(raid.carry),
+            carryValue = getLootValue(raid.carry),
+            carryWeight = getLootWeight(raid.carry),
+            maxCarryWeight = Config.Raid.maxCarryWeight,
+        })
+        deleteLootStash(stash.id)
+    end
+end
+
+local function createLootStash(session, spot)
+    local slots, maxWeight = getCrateInventoryLimits(spot.tier)
+    local loot = rollCrateLoot(spot.tier)
+    local stashId
+
+    local ok, result = pcall(function()
+        return exports.ox_inventory:CreateTemporaryStash({
+            label = ('%s Cache'):format(spot.label or 'Field'),
+            slots = slots,
+            maxWeight = maxWeight,
+            items = buildOxStashItems(loot),
+            coords = spot.coords,
+            instance = session.bucket,
+        })
+    end)
+
+    if ok then
+        stashId = result
+    else
+        print(('[standalone_extraction] CreateTemporaryStash failed for %s: %s'):format(spot.id, result))
+    end
+
+    if not stashId then
+        return nil
+    end
+
+    activeLootStashes[stashId] = {
+        id = stashId,
+        sessionId = session.id,
+        spotId = spot.id,
+        label = spot.label or 'Field Cache',
+        lastContents = copyLoot(loot),
+    }
+
+    session.lootStashes[spot.id] = stashId
+
+    return activeLootStashes[stashId]
+end
+
+local function openLootStash(source, session, spot)
+    if session.lootedSpots[spot.id] then
+        notify(source, 'This cache is already empty.')
+        return true
+    end
+
+    local stashId = session.lootStashes[spot.id]
+    local stash = stashId and activeLootStashes[stashId] or createLootStash(session, spot)
+
+    if not stash then
+        return false
+    end
+
+    stash.openedBy = source
+
+    local ok, openedId = pcall(function()
+        return exports.ox_inventory:forceOpenInventory(source, 'stash', stash.id)
+    end)
+
+    if not ok or not openedId then
+        notify(source, 'Could not open this cache.')
+        return true
+    end
+
+    return true
+end
+
+local function syncLootStashesForPlayer(source)
+    local raid = getRaid(source)
+    if not raid then
+        return
+    end
+
+    for _, stash in pairs(activeLootStashes) do
+        if stash.sessionId == raid.sessionId and stash.openedBy == source then
+            applyLootDeltaToRaid(source, stash)
+        end
+    end
+end
+
 local function cleanupRaid(source)
     local raid = activeRaids[source]
     if raid then
@@ -1147,6 +1468,7 @@ local function cleanupRaid(source)
 
                 if next(session.deathDrops) == nil then
                     deleteSessionDeathDrops(session)
+                    deleteSessionLootStashes(session)
                     activeSessions[raid.sessionId] = nil
                 end
             else
@@ -1160,6 +1482,7 @@ local function cleanupRaid(source)
     activeRaids[source] = nil
 
     if GetPlayerName(source) then
+        resetOxMaxWeight(source)
         SetPlayerRoutingBucket(source, 0)
     end
 end
@@ -1187,6 +1510,7 @@ local function startSession(players)
         expiresAt = os.time() + Config.Raid.durationSeconds,
         players = {},
         lootedSpots = {},
+        lootStashes = {},
         deathDrops = {},
         extractionIds = chooseSessionExtractions(),
     }
@@ -1225,6 +1549,7 @@ local function startSession(players)
                 }
 
                 clearOxInventory(playerId)
+                setOxMaxWeight(playerId, Config.Raid.maxCarryWeight)
                 addLootToOxInventory(playerId, loadoutLoot)
 
                 SetPlayerRoutingBucket(playerId, session.bucket)
@@ -1383,6 +1708,11 @@ RegisterNetEvent('standalone_extraction:server:lootSpot', function(spotId)
         return
     end
 
+    if isOxInventoryEnabled() then
+        openLootStash(source, session, spot)
+        return
+    end
+
     local itemName = rollLootItem(spot.tier)
     local itemData = getItemDefinition(itemName)
     if not itemData then
@@ -1451,6 +1781,8 @@ RegisterNetEvent('standalone_extraction:server:extract', function(extractId)
     if not isPlayerNear(source, extractPoint.coords, Config.ValidationDistance + 1.0) then
         return
     end
+
+    syncLootStashesForPlayer(source)
 
     local profile = getProfile(source)
     if not profile then
@@ -1535,6 +1867,17 @@ RegisterNetEvent('standalone_extraction:server:lootDeathDrop', function(dropId)
     broadcastSession(session, 'standalone_extraction:client:updateDeathDrops', {
         drops = buildDeathDropPayload(session),
     })
+end)
+
+AddEventHandler('ox_inventory:closedInventory', function(playerId, inventoryId)
+    local stash = inventoryId and activeLootStashes[inventoryId]
+
+    if not stash then
+        return
+    end
+
+    stash.openedBy = nil
+    applyLootDeltaToRaid(playerId, stash)
 end)
 
 RegisterNetEvent('standalone_extraction:server:sellSecuredLoot', function()
@@ -1774,6 +2117,7 @@ RegisterNetEvent('standalone_extraction:server:leaveRaid', function()
         return
     end
 
+    syncLootStashesForPlayer(source)
     clearLoot(raid.carry)
     clearOxInventory(source)
     endRaid(source, 'left', Config.Strings.left_raid)
@@ -1784,6 +2128,8 @@ local function onPlayerDeath(source)
     if not raid then
         return
     end
+
+    syncLootStashesForPlayer(source)
 
     local profile = getProfile(source) or getProfileByIdentifier(raid.identifier)
     if profile then
@@ -1803,6 +2149,8 @@ local function onPlayerDroppedInRaid(source)
         return
     end
 
+    syncLootStashesForPlayer(source)
+
     local profile = getProfile(source) or getProfileByIdentifier(raid.identifier)
     if profile then
         deletePersistedLoadout(profile, raid.loadout or {})
@@ -1820,6 +2168,8 @@ local function markPlayerMia(source)
     if not raid then
         return
     end
+
+    syncLootStashesForPlayer(source)
 
     local profile = getProfile(source) or getProfileByIdentifier(raid.identifier)
     if profile then
@@ -1909,6 +2259,7 @@ CreateThread(function()
             buildDeathDropPayload(session)
 
             if next(session.players) == nil and next(session.deathDrops) == nil then
+                deleteSessionLootStashes(session)
                 activeSessions[sessionId] = nil
             end
         end

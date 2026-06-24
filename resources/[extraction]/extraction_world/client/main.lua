@@ -208,6 +208,19 @@ RegisterNetEvent('standalone_extraction:client:lootResult', function(payload)
     spawnedProps[payload.spotId] = nil
 end)
 
+RegisterNetEvent('standalone_extraction:client:lootSpotEmptied', function(payload)
+    local spotId = payload and payload.spotId
+    local entity = spotId and spawnedProps[spotId]
+
+    if entity and DoesEntityExist(entity) then
+        DeleteEntity(entity)
+    end
+
+    if spotId then
+        spawnedProps[spotId] = nil
+    end
+end)
+
 RegisterNetEvent('standalone_extraction:client:endRaid', function()
     raidActive = false
     cleanupWorld()
