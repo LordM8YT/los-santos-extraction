@@ -11,6 +11,7 @@ local nextRaidId = 1
 local nextDropId = 1
 local extractionById = {}
 local isPlayerNear
+local getItemDefinition
 
 local QUEST_DEFINITIONS = {
     {
@@ -58,6 +59,103 @@ local function notify(source, message)
     TriggerClientEvent('standalone_extraction:client:notify', source, message)
 end
 
+local OX_ITEM_ALIASES = {
+    pistol = 'WEAPON_PISTOL',
+    pistol_ammo = 'ammo-9',
+}
+
+local function isOxInventoryEnabled()
+    return GetResourceState('ox_inventory') == 'started'
+end
+
+local function getOxItemName(itemName)
+    local itemData = getItemDefinition(itemName)
+
+    if OX_ITEM_ALIASES[itemName] then
+        return OX_ITEM_ALIASES[itemName]
+    end
+
+    if itemData and itemData.type == 'weapon' and itemData.weapon then
+        return itemData.weapon
+    end
+
+    if itemData and itemData.type == 'ammo' and itemData.ammoFor == 'WEAPON_PISTOL' then
+        return 'ammo-9'
+    end
+
+    return itemName
+end
+
+local function addOxItem(source, itemName, count, metadata)
+    if not isOxInventoryEnabled() then
+        return false, 'ox_inventory_not_started'
+    end
+
+    count = math.max(1, math.floor(tonumber(count) or 1))
+
+    local ok, success, response = pcall(function()
+        return exports.ox_inventory:AddItem(source, getOxItemName(itemName), count, metadata)
+    end)
+
+    if not ok then
+        print(('[standalone_extraction] ox_inventory AddItem failed for %s: %s'):format(itemName, success))
+        return false, success
+    end
+
+    if not success then
+        print(('[standalone_extraction] ox_inventory rejected %sx %s: %s'):format(count, itemName, response or 'unknown'))
+    end
+
+    return success, response
+end
+
+local function addLootToOxInventory(source, loot)
+    if not isOxInventoryEnabled() or type(loot) ~= 'table' then
+        return
+    end
+
+    for itemName, count in pairs(loot) do
+        count = tonumber(count) or 0
+
+        if count > 0 then
+            addOxItem(source, itemName, count)
+        end
+    end
+end
+
+local function removeOxItem(source, itemName, count)
+    if not isOxInventoryEnabled() then
+        return false, 'ox_inventory_not_started'
+    end
+
+    count = math.max(1, math.floor(tonumber(count) or 1))
+
+    local ok, success, response = pcall(function()
+        return exports.ox_inventory:RemoveItem(source, getOxItemName(itemName), count)
+    end)
+
+    if not ok then
+        print(('[standalone_extraction] ox_inventory RemoveItem failed for %s: %s'):format(itemName, success))
+        return false, success
+    end
+
+    return success, response
+end
+
+local function clearOxInventory(source)
+    if not isOxInventoryEnabled() then
+        return
+    end
+
+    local ok, err = pcall(function()
+        exports.ox_inventory:ClearInventory(source)
+    end)
+
+    if not ok then
+        print(('[standalone_extraction] ox_inventory ClearInventory failed for %s: %s'):format(source, err))
+    end
+end
+
 local function getWeaponItems()
     if GetResourceState('extraction_weapons') ~= 'started' then
         return {}
@@ -81,7 +179,7 @@ local function getItemDefinitions()
     return definitions
 end
 
-local function getItemDefinition(itemName)
+function getItemDefinition(itemName)
     return Config.Items[itemName] or getWeaponItems()[itemName]
 end
 
@@ -1126,6 +1224,9 @@ local function startSession(players)
                     identifier = identifier,
                 }
 
+                clearOxInventory(playerId)
+                addLootToOxInventory(playerId, loadoutLoot)
+
                 SetPlayerRoutingBucket(playerId, session.bucket)
                 TriggerClientEvent('standalone_extraction:client:startRaid', playerId, {
                     raidId = sessionId,
@@ -1299,6 +1400,15 @@ RegisterNetEvent('standalone_extraction:server:lootSpot', function(spotId)
         return
     end
 
+    if isOxInventoryEnabled() then
+        local added = addOxItem(source, itemName, amount)
+
+        if not added then
+            notify(source, Config.Strings.bag_full)
+            return
+        end
+    end
+
     session.lootedSpots[spotId] = true
     raid.carry[itemName] = (raid.carry[itemName] or 0) + amount
 
@@ -1360,6 +1470,7 @@ RegisterNetEvent('standalone_extraction:server:extract', function(extractId)
     profile.bestRunValue = math.max(profile.bestRunValue, runValue)
 
     clearLoot(raid.carry)
+    clearOxInventory(source)
     saveProfiles()
 
     endRaid(source, 'extracted', Config.Strings.extracted)
@@ -1408,6 +1519,7 @@ RegisterNetEvent('standalone_extraction:server:lootDeathDrop', function(dropId)
     end
 
     addLoot(raid.carry, drop.loot)
+    addLootToOxInventory(source, drop.loot)
     deleteDeathDropCrate(drop)
     session.deathDrops[dropId] = nil
 
@@ -1640,6 +1752,7 @@ RegisterNetEvent('standalone_extraction:server:discardCarryItem', function(itemN
     end
 
     raid.carry[itemName] = current - amount
+    removeOxItem(source, itemName, amount)
     notify(source, ('You dropped %sx %s.'):format(amount, itemData.label))
 
     TriggerClientEvent('standalone_extraction:client:updateCarry', source, {
@@ -1662,6 +1775,7 @@ RegisterNetEvent('standalone_extraction:server:leaveRaid', function()
     end
 
     clearLoot(raid.carry)
+    clearOxInventory(source)
     endRaid(source, 'left', Config.Strings.left_raid)
 end)
 
@@ -1679,6 +1793,7 @@ local function onPlayerDeath(source)
     end
 
     createDeathDrop(source, raid)
+    clearOxInventory(source)
     endRaid(source, 'dead', Config.Strings.died)
 end
 
@@ -1696,6 +1811,7 @@ local function onPlayerDroppedInRaid(source)
     end
 
     createDeathDrop(source, raid, getRaidFallbackCoords(source, raid))
+    clearOxInventory(source)
     cleanupRaid(source)
 end
 
@@ -1714,6 +1830,7 @@ local function markPlayerMia(source)
 
     clearLoot(raid.carry)
     clearLoot(raid.loadout or {})
+    clearOxInventory(source)
     endRaid(source, 'mia', 'You went MIA. Your carried equipment was lost.')
 end
 
