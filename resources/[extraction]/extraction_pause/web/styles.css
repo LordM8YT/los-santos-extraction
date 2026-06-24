@@ -46,13 +46,13 @@ body {
   display: none;
   place-items: center;
   padding: 30px;
-  background:
-    radial-gradient(circle at 24% 20%, rgba(225, 189, 114, 0.18), transparent 32%),
-    linear-gradient(90deg, rgba(0, 0, 0, 0.86), rgba(0, 0, 0, 0.54));
+  background: transparent !important;
+  pointer-events: none;
 }
 
 .app.is-open {
   display: grid;
+  pointer-events: auto;
 }
 
 .pause-shell {

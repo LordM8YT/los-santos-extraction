@@ -15,6 +15,16 @@ New-Item -ItemType Directory -Force -Path $bridgeTarget | Out-Null
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot "bridge\server\server.lua") -Destination (Join-Path $bridgeTarget "server.lua") -Force
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot "bridge\client\client.lua") -Destination (Join-Path $bridgeTarget "client.lua") -Force
 
+$themeTarget = Join-Path $oxInventory "web\build\assets\lsx-theme.css"
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot "theme\lsx-theme.css") -Destination $themeTarget -Force
+
+$indexPath = Join-Path $oxInventory "web\build\index.html"
+$index = Get-Content -LiteralPath $indexPath -Raw
+if ($index -notmatch "lsx-theme.css") {
+    $index = $index.Replace("</head>", "    <link rel=`"stylesheet`" href=`"./assets/lsx-theme.css`" />`r`n  </head>")
+    Set-Content -LiteralPath $indexPath -Value $index -NoNewline
+}
+
 $mysqlPath = Join-Path $oxInventory "modules\mysql\server.lua"
 $mysql = Get-Content -LiteralPath $mysqlPath -Raw
 
