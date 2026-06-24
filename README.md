@@ -7,8 +7,9 @@ A standalone FiveM PvPvE extraction shooter prototype. The goal is to build a ga
 - Lua
 - FiveM natives
 - ox_lib
-- Custom standalone inventory/HUD/prototype persistence
-- oxmysql, ox_core, and ox_inventory are installed locally, but intentionally not enabled yet
+- oxmysql
+- ox_inventory through the LSX bridge
+- Custom standalone HUD/prototype raid persistence
 - EasyAdmin is installed locally and enabled as the admin menu
 
 ## Resource Layout
@@ -28,7 +29,7 @@ Custom project resources live in `resources/[extraction]`.
 - `extraction_character`
   Foundation for future custom operators, character slots, models, components, and skins.
 - `extraction_inventory`
-  Armory-style NUI stash, loadout, raid bag, drop, and sell interface.
+  Legacy compatibility wrapper. With `inventory:framework "lsx"` it opens `ox_inventory` for raid inventory instead of the old field inventory UI.
 - `extraction_hud`
   Custom HUD, notifications, hints, raid timer, progress UI, minimap cleanup, and vanilla HUD suppression.
 - `extraction_lobby`
@@ -52,9 +53,7 @@ These are not committed to this repo. Install Overextended resources into `resou
 - `ox_inventory` v2.47.7
 - `EasyAdmin` v7.53 pinned to `d732e54626dc362dbd1e42121c0b243eacbf24e4`
 
-`ox_lib` and `EasyAdmin` are enabled in `server.cfg` right now. `ox_core` is installed so `ox_inventory` can be tested with `inventory:framework "ox"` after MySQL is configured. See `docs/OX_INVENTORY_TEST.md` for the test plan and `docs/EASYADMIN_SETUP.md` for the local admin setup.
-
-`ox_core` is treated as an inventory bridge only. Its RP-facing character, death, hospital, job/group, account, and vehicle ownership flows should stay disabled or unused so LSX remains a standalone extraction game.
+`ox_lib`, `oxmysql`, `ox_inventory`, and `EasyAdmin` are enabled in local `server.cfg`. `ox_inventory` runs with `inventory:framework "lsx"` through the LSX bridge; `ox_core` should stay disabled unless a future isolated test explicitly needs it. See `docs/OX_INVENTORY_TEST.md` for the LSX bridge plan and `docs/EASYADMIN_SETUP.md` for the local admin setup.
 
 ## Server Config
 
@@ -64,10 +63,12 @@ Use `server.example.cfg` as the safe handoff template. It currently starts:
 
 ```cfg
 ensure ox_lib
+ensure oxmysql
 ensure EasyAdmin
 ensure extraction_items
 ensure extraction_loadscreen
 ensure lsx_core
+ensure ox_inventory
 ensure extraction_core
 ensure extraction_admin
 ensure extraction_chat
@@ -97,6 +98,7 @@ add_ace resource.EasyAdmin command allow
 - Keep gameplay values in config files.
 - Keep client, server, and shared logic separated.
 - Avoid ESX/QBCore unless the project explicitly changes direction.
+- Use `lsx_core` as the framework surface and `ox_inventory` as the inventory provider.
 - Do not rename item keys without a migration for saved player data.
 - Do not commit `standalone_extraction/data/players.json`.
 

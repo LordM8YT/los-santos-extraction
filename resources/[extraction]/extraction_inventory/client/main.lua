@@ -3,6 +3,19 @@ local latestSnapshot
 local raidActive = false
 local closeUi
 
+local function shouldUseOxInventory()
+    return GetConvar('inventory:framework', '') == 'lsx' and GetResourceState('ox_inventory') == 'started'
+end
+
+local function openOxInventory()
+    if not shouldUseOxInventory() then
+        return false
+    end
+
+    exports.ox_inventory:openInventory()
+    return true
+end
+
 local function getFallbackSnapshot()
     return {
         cash = 0,
@@ -39,6 +52,10 @@ local function openUi()
         return
     end
 
+    if openOxInventory() then
+        return
+    end
+
     if uiOpen then
         TriggerServerEvent('standalone_extraction:server:requestInventory', false)
         return
@@ -63,6 +80,11 @@ function closeUi()
 end
 
 RegisterCommand('extractinv', function()
+    if shouldUseOxInventory() and raidActive then
+        openOxInventory()
+        return
+    end
+
     if uiOpen then
         closeUi()
         return

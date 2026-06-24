@@ -29,4 +29,4 @@ This project is being built in small, runnable milestones. Please keep changes f
 
 ## Dependency Notes
 
-`ox_lib` is active. `oxmysql` and `ox_inventory` are local dependencies but not part of the active runtime yet.
+`ox_lib`, `oxmysql`, and `ox_inventory` are active locally. `ox_inventory` must use `inventory:framework "lsx"` and the LSX bridge, not ESX/QBCore/ox_core gameplay.
