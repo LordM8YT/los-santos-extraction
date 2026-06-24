@@ -13,7 +13,6 @@ local function publishGroups()
 
     table.sort(names)
     GlobalState.groups = names
-    GlobalState.accountRoles = {}
 end
 
 function LSX.Server.Groups.Get(name)

@@ -32,7 +32,7 @@ local QUEST_DEFINITIONS = {
     {
         id = 'find_the_signal',
         title = 'Find The Signal',
-        description = 'Extract Intel from the city and start building faction trust.',
+        description = 'Extract Intel from the city and start building network trust.',
         requiredItem = 'intel',
         requiredCount = 1,
         rewards = {

@@ -6,7 +6,7 @@ ExtractionCharacterConfig = {
     },
     defaults = {
         callsign = 'Contractor',
-        faction = 'Independent',
+        affiliation = 'Unaffiliated',
         archetype = 'Recon',
     },
 }

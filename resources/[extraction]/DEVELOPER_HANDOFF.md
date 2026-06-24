@@ -7,7 +7,7 @@ This folder contains a standalone FiveM extraction prototype. The current goal i
 - `extraction_items`
   Shared item registry with tetris metadata and future container templates.
 - `lsx_core`
-  Standalone LSX framework core. Provides ox-style player objects, identifiers, groups, statuses, licenses, statebag replication, and compatibility events without jobs, RP death, banking, hospitals, or vehicle ownership.
+  Standalone LSX framework core. Provides ox-style operator objects, identifiers, groups, statuses, statebag replication, and compatibility events without jobs, RP death, banking, hospitals, or vehicle ownership.
 - `extraction_weapons`
   Weapon-pack adapter. Registers lootable weapon/ammo items and exposes weapon loot tables without coupling streamed weapon packs into the raid loop.
 - `extraction_traders`

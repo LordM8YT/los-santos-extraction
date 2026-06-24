@@ -27,18 +27,11 @@ local dotMethods = {
     'setStatus',
     'addStatus',
     'removeStatus',
-    'getLicense',
-    'getLicenses',
-    'addLicense',
-    'removeLicense',
-    'updateLicense',
     'save',
     'logout',
     'createCharacter',
     'deleteCharacter',
     'setActiveCharacter',
-    'getAccount',
-    'payInvoice',
 }
 
 local function getPlayerPedSafe(source)
@@ -125,7 +118,6 @@ local function createPlayer(source)
         },
         groups = createDefaultGroups(source),
         statuses = LSX.Utils.Copy(LSXConfig.Player.defaultStatuses),
-        licenses = {},
     }, PlayerMethods))
 
     playersBySource[source] = player
@@ -180,7 +172,6 @@ function PlayerMethods:serialize()
         username = self.username,
         groups = LSX.Utils.Copy(self.groups),
         statuses = LSX.Utils.Copy(self.statuses),
-        licenses = LSX.Utils.Copy(self.licenses),
         metadata = LSX.Utils.Copy(self.metadata),
     }
 end
@@ -333,47 +324,6 @@ function PlayerMethods:removeStatus(statusName, value)
     return PlayerMethods.setStatus(self, statusName, PlayerMethods.getStatus(self, statusName) - (tonumber(value) or 0))
 end
 
-function PlayerMethods:getLicense(licenseName)
-    return self.licenses[licenseName]
-end
-
-function PlayerMethods:getLicenses()
-    return LSX.Utils.Copy(self.licenses)
-end
-
-function PlayerMethods:addLicense(licenseName)
-    if not licenseName then return false end
-
-    self.licenses[licenseName] = self.licenses[licenseName] or {
-        issued = os.time(),
-    }
-
-    syncState(self)
-    return true
-end
-
-function PlayerMethods:removeLicense(licenseName)
-    if not self.licenses[licenseName] then
-        return false
-    end
-
-    self.licenses[licenseName] = nil
-    syncState(self)
-
-    return true
-end
-
-function PlayerMethods:updateLicense(licenseName, key, value)
-    if not self.licenses[licenseName] then
-        return false
-    end
-
-    self.licenses[licenseName][key] = value
-    syncState(self)
-
-    return true
-end
-
 function PlayerMethods:save()
     -- Persistence belongs to lsx_player. The core object exposes save() for ox-style compatibility.
     TriggerEvent('lsx:playerSaveRequested', self.source, self)
@@ -412,20 +362,9 @@ function PlayerMethods:setActiveCharacter(data)
     return {
         charId = self.charId,
         stateId = self.stateId,
-        firstName = self.metadata.firstName or 'Operator',
-        lastName = self.metadata.lastName or tostring(self.charId),
+        operatorName = self.metadata.operatorName or self.username or ('Operator %s'):format(self.charId),
+        callSign = self.metadata.callSign or ('LSX-%s'):format(self.charId),
         isNew = false,
-    }
-end
-
-function PlayerMethods:getAccount()
-    return nil
-end
-
-function PlayerMethods:payInvoice()
-    return {
-        success = false,
-        message = 'not_supported',
     }
 end
 

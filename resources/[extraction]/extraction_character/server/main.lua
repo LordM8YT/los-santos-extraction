@@ -15,7 +15,7 @@ local function buildDefaultCharacter()
 
     return {
         callsign = defaults.callsign or 'Contractor',
-        faction = defaults.faction or 'Independent',
+        affiliation = defaults.affiliation or 'Unaffiliated',
         archetype = defaults.archetype or 'Recon',
         model = ExtractionCharacterConfig.defaultModel or 'mp_m_freemode_01',
         components = {},

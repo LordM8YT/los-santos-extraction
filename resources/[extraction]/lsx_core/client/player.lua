@@ -3,7 +3,6 @@ LSX.Client = LSX.Client or {}
 local playerData = {
     groups = {},
     statuses = {},
-    licenses = {},
     metadata = {},
 }
 

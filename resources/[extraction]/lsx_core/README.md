@@ -8,7 +8,7 @@ Standalone framework core for Los Santos Extraction.
 
 - Player registry keyed by source, userId, and charId.
 - Identifier snapshots.
-- Ox-style `GetPlayer`, `GetPlayers`, `GetPlayerFromFilter`, group, status, and license APIs.
+- Ox-style `GetPlayer`, `GetPlayers`, `GetPlayerFromFilter`, group, and status APIs.
 - Statebag replication through `Player(source).state.lsxPlayer`.
 - LSX events for player load, logout, drop, metadata, and group updates.
 - No jobs, no RP death flow, no vehicle ownership, no banking/accounts.

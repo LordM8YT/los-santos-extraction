@@ -22,8 +22,7 @@ LSXConfig = {
         defaultStatuses = {
             health = 100,
             armour = 0,
-            hunger = 0,
-            thirst = 0,
+            stamina = 100,
         },
     },
 
@@ -40,8 +39,6 @@ LSXConfig = {
             grades = {
                 [1] = 'Operator',
             },
-            hasAccount = false,
-            accountRoles = {},
             principal = 'group.survivor',
             adminGrade = 99,
         },
@@ -54,8 +51,6 @@ LSXConfig = {
                 [2] = 'Admin',
                 [3] = 'Owner',
             },
-            hasAccount = false,
-            accountRoles = {},
             principal = 'group.admin',
             adminGrade = 2,
         },

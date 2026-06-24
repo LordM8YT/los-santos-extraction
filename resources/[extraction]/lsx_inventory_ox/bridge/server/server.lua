@@ -4,14 +4,9 @@ local Inventory = require 'modules.inventory.server'
 
 local function getPlayerName(player)
     local metadata = player.metadata or {}
-    local firstName = metadata.firstName or metadata.operatorName
-    local lastName = metadata.lastName
+    local operatorName = metadata.operatorName or metadata.callSign
 
-    if firstName and lastName then
-        return ('%s %s'):format(firstName, lastName)
-    end
-
-    return player.username or GetPlayerName(player.source) or ('Player %s'):format(player.source)
+    return operatorName or player.username or GetPlayerName(player.source) or ('Operator %s'):format(player.source)
 end
 
 local function setupPlayer(source)
@@ -24,8 +19,6 @@ local function setupPlayer(source)
         identifier = player.identifier,
         name = getPlayerName(player),
         groups = player.getGroups(),
-        sex = player.get('gender'),
-        dateofbirth = player.get('dateOfBirth'),
     })
 end
 
@@ -62,34 +55,17 @@ function server.setPlayerData(player)
         source = player.source,
         name = player.name,
         groups = lsxPlayer and lsxPlayer.getGroups() or player.groups or {},
-        sex = player.sex,
-        dateofbirth = player.dateofbirth,
     }
 end
 
 ---@diagnostic disable-next-line: duplicate-set-field
-function server.hasLicense(inv, name)
-    local player = exports.lsx_core:GetPlayer(inv.id)
-
-    return player and player.getLicense(name)
+function server.hasLicense()
+    return false
 end
 
 ---@diagnostic disable-next-line: duplicate-set-field
-function server.buyLicense(inv, license)
-    local player = exports.lsx_core:GetPlayer(inv.id)
-
-    if not player then return end
-
-    if player.getLicense(license.name) then
-        return false, 'already_have'
-    elseif Inventory.GetItemCount(inv, 'money') < license.price then
-        return false, 'can_not_afford'
-    end
-
-    Inventory.RemoveItem(inv, 'money', license.price)
-    player.addLicense(license.name)
-
-    return true, 'have_purchased'
+function server.buyLicense()
+    return false, 'not_supported'
 end
 
 ---@diagnostic disable-next-line: duplicate-set-field
