@@ -135,6 +135,42 @@ local function shouldShowNativeRadar()
     return shouldShowCustomMinimap()
 end
 
+local function applyMinimapLayout(config)
+    local layout = config.Layout
+
+    if type(layout) ~= 'table' or layout.enabled == false then
+        return
+    end
+
+    if layout.clipType then
+        SetMinimapClipType(layout.clipType)
+    end
+
+    if type(layout.components) ~= 'table' then
+        return
+    end
+
+    for componentName, component in pairs(layout.components) do
+        if type(component) == 'table' then
+            SetMinimapComponentPosition(
+                componentName,
+                component.alignX or 'L',
+                component.alignY or 'B',
+                component.posX or 0.0,
+                component.posY or 0.0,
+                component.sizeX or 0.0,
+                component.sizeY or 0.0
+            )
+        end
+    end
+end
+
+local function refreshMinimapScaleform()
+    SetRadarBigmapEnabled(true, false)
+    Wait(0)
+    SetRadarBigmapEnabled(false, false)
+end
+
 local function applyMinimapCleanup(showRadar)
     local config = ExtractionHudConfig and ExtractionHudConfig.Minimap or {}
     local now = GetGameTimer()
@@ -150,6 +186,7 @@ local function applyMinimapCleanup(showRadar)
 
     if shouldEnforce then
         nextMinimapEnforce = now + (config.enforceIntervalMs or 500)
+        applyMinimapLayout(config)
 
         if config.forceSmallMap ~= false then
             SetRadarBigmapEnabled(false, false)
@@ -357,6 +394,7 @@ end)
 CreateThread(function()
     loadClientSettings()
     minimapScaleform = RequestScaleformMovie('minimap')
+    refreshMinimapScaleform()
     SetNuiFocus(false, false)
     SetNuiFocusKeepInput(false)
     send('boot', {})

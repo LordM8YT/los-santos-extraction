@@ -20,6 +20,10 @@
 # Do not commit live player data.
 /resources/\[extraction\]/standalone_extraction/data/players.json
 
+# Local/private GTA scaleform override. Keep the stream slot tracked, but do not
+# publish modified Rockstar binary assets in the public repo.
+/resources/\[extraction\]/extraction_hud/stream/minimap.gfx
+
 # Common local/editor files
 .DS_Store
 Thumbs.db
