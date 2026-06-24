@@ -158,6 +158,51 @@ local function spawnWorld()
     end
 end
 
+local function drawCrateGlow(playerCoords)
+    local glow = WorldConfig.CrateGlow
+    if not glow or not glow.enabled then
+        return false
+    end
+
+    local maxDistance = glow.maxDistance or 26.0
+    local maxDistanceSquared = maxDistance * maxDistance
+    local zOffset = glow.zOffset or 0.35
+    local range = glow.range or 1.45
+    local intensity = glow.intensity or 0.22
+    local pulse = glow.pulse or 0.0
+    local pulseValue = pulse > 0.0 and (math.sin(GetGameTimer() * 0.003) * pulse) or 0.0
+    local drewGlow = false
+
+    for spotId, entity in pairs(spawnedProps) do
+        if DoesEntityExist(entity) then
+            local spot = lootSpotsById[spotId]
+            local coords = GetEntityCoords(entity)
+            local dx = playerCoords.x - coords.x
+            local dy = playerCoords.y - coords.y
+            local dz = playerCoords.z - coords.z
+            local distanceSquared = dx * dx + dy * dy + dz * dz
+
+            if distanceSquared <= maxDistanceSquared then
+                local color = (spot and spot.color) or WorldConfig.TierColors.low
+                DrawLightWithRange(
+                    coords.x,
+                    coords.y,
+                    coords.z + zOffset,
+                    color.r or 120,
+                    color.g or 190,
+                    color.b or 255,
+                    range,
+                    math.max(0.01, intensity + pulseValue)
+                )
+
+                drewGlow = true
+            end
+        end
+    end
+
+    return drewGlow
+end
+
 local function hasActiveGuardThreat(spotId)
     local spot = lootSpotsById[spotId]
     if not spot or not spot.guardZoneId then
@@ -228,6 +273,19 @@ end)
 
 CreateThread(function()
     buildLookups()
+end)
+
+CreateThread(function()
+    while true do
+        if raidActive and next(spawnedProps) then
+            local playerCoords = GetEntityCoords(PlayerPedId())
+            local drewGlow = drawCrateGlow(playerCoords)
+
+            Wait(drewGlow and 0 or 450)
+        else
+            Wait(1000)
+        end
+    end
 end)
 
 CreateThread(function()

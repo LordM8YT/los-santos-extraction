@@ -10,6 +10,15 @@ WorldConfig.TierColors = {
     high = { r = 255, g = 95, b = 95, a = 155 },
 }
 
+WorldConfig.CrateGlow = {
+    enabled = true,
+    maxDistance = 26.0,
+    zOffset = 0.35,
+    range = 1.45,
+    intensity = 0.22,
+    pulse = 0.06,
+}
+
 WorldConfig.LootZones = {
     {
         id = 'airport_logistics',
