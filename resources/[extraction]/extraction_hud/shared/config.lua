@@ -21,9 +21,9 @@ ExtractionHudConfig = {
             enabled = true,
             clipType = 1,
             components = {
-                minimap = { alignX = 'L', alignY = 'B', posX = -0.0045, posY = -0.0220, sizeX = 0.1500, sizeY = 0.1889 },
-                minimap_mask = { alignX = 'L', alignY = 'B', posX = 0.0200, posY = 0.0320, sizeX = 0.1110, sizeY = 0.1590 },
-                minimap_blur = { alignX = 'L', alignY = 'B', posX = -0.0300, posY = -0.0000, sizeX = 0.2660, sizeY = 0.2370 },
+                minimap = { alignX = 'L', alignY = 'B', posX = -0.0045, posY = -0.0280, sizeX = 0.1500, sizeY = 0.1889 },
+                minimap_mask = { alignX = 'L', alignY = 'B', posX = 0.0200, posY = 0.0260, sizeX = 0.1110, sizeY = 0.1590 },
+                minimap_blur = { alignX = 'L', alignY = 'B', posX = -0.0300, posY = -0.0060, sizeX = 0.2660, sizeY = 0.2370 },
             },
         },
     },

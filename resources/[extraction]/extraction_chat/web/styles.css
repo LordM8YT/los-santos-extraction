@@ -33,9 +33,9 @@ body {
 .chat-shell {
     position: absolute;
     left: 1.35vw;
-    top: 2.2vh;
-    width: min(34rem, 34vw);
-    min-width: 26rem;
+    top: 2vh;
+    width: min(27rem, 27vw);
+    min-width: 19rem;
     pointer-events: none;
 }
 
@@ -49,7 +49,17 @@ body {
     clip-path: polygon(0 0, calc(100% - 1.1rem) 0, 100% 1.1rem, 100% 100%, 0 100%);
     opacity: 0.82;
     transform: translateY(-0.25rem);
-    transition: opacity 140ms ease, transform 140ms ease;
+    transition: opacity 140ms ease, transform 140ms ease, max-height 140ms ease;
+}
+
+.is-passive.is-empty .chat-panel {
+    max-height: 2.25rem;
+    overflow: hidden;
+    opacity: 0.54;
+    background:
+        linear-gradient(90deg, rgba(168, 241, 94, 0.12), transparent 42%),
+        rgba(6, 9, 10, 0.58);
+    box-shadow: 0 10px 34px rgba(0, 0, 0, 0.24);
 }
 
 .is-open .chat-panel {
@@ -75,7 +85,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.72rem 0.85rem 0.5rem;
+    padding: 0.58rem 0.72rem 0.46rem;
     border-bottom: 1px solid var(--line);
     letter-spacing: 0.16em;
     text-transform: uppercase;
@@ -86,21 +96,21 @@ body {
     align-items: center;
     gap: 0.5rem;
     color: var(--text);
-    font-size: 0.76rem;
+    font-size: 0.64rem;
     font-weight: 800;
 }
 
 .chat-title::before {
     content: "";
-    width: 0.48rem;
-    height: 0.48rem;
+    width: 0.38rem;
+    height: 0.38rem;
     background: var(--accent);
     box-shadow: 0 0 18px rgba(168, 241, 94, 0.85);
 }
 
 .chat-status {
     color: var(--muted);
-    font-size: 0.62rem;
+    font-size: 0.54rem;
 }
 
 .message-feed {
@@ -109,9 +119,17 @@ body {
     flex-direction: column;
     gap: 0.32rem;
     max-height: 26vh;
-    min-height: 4.6rem;
+    min-height: 3.4rem;
     overflow: hidden;
     padding: 0.78rem 0.78rem 0.65rem;
+}
+
+.is-passive.is-empty .message-feed {
+    display: none;
+}
+
+.is-passive.is-empty .chat-status {
+    color: rgba(168, 241, 94, 0.58);
 }
 
 .chat-message {

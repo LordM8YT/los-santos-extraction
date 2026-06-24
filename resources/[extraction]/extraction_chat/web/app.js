@@ -50,6 +50,7 @@ function App() {
     const [selectedSuggestion, setSelectedSuggestion] = useState(0);
     const [history, setHistory] = useState([]);
     const [historyIndex, setHistoryIndex] = useState(null);
+    const hasMessages = messages.length > 0;
 
     const inputLower = input.toLowerCase();
     const filteredSuggestions = input.startsWith('/')
@@ -206,7 +207,7 @@ function App() {
 
     return e(
         'div',
-        { className: `chat-shell ${visible ? 'is-open' : 'is-passive'}` },
+        { className: `chat-shell ${visible ? 'is-open' : 'is-passive'} ${hasMessages ? 'has-messages' : 'is-empty'}` },
         e(
             'section',
             { className: 'chat-panel' },
