@@ -14,36 +14,9 @@ local extractionById = {}
 local isPlayerNear
 local getItemDefinition
 
-local QUEST_DEFINITIONS = {
-    {
-        id = 'first_blood_sample',
-        title = 'First Blood Sample',
-        description = 'Secure medical supplies and deliver them to the safehouse.',
-        requiredItem = 'meds',
-        requiredCount = 1,
-        rewards = {
-            cash = 750,
-            xp = 150,
-            items = {
-                pistol_ammo = 24,
-            }
-        }
-    },
-    {
-        id = 'find_the_signal',
-        title = 'Find The Signal',
-        description = 'Extract Intel from the city and start building network trust.',
-        requiredItem = 'intel',
-        requiredCount = 1,
-        rewards = {
-            cash = 1200,
-            xp = 260,
-            items = {
-                meds = 1,
-                weapon_parts = 1,
-            }
-        }
-    }
+local dailyQuestCache = {
+    rotation = nil,
+    quests = {},
 }
 
 local function asVec3(coords)
@@ -551,27 +524,152 @@ local function buildLootList(loot)
     return entries
 end
 
+local function getMaxLevel()
+    return math.max(1, math.floor(tonumber(Config.Progression.maxLevel) or 100))
+end
+
+local function getXpPerLevel()
+    return math.max(1, math.floor(tonumber(Config.Progression.xpPerLevel) or 700))
+end
+
+local function getMaxXp()
+    return math.max(0, (getMaxLevel() - 1) * getXpPerLevel())
+end
+
 local function getLevelFromXp(xp)
-    return math.floor((xp or 0) / Config.Progression.xpPerLevel) + 1
+    local level = math.floor((tonumber(xp) or 0) / getXpPerLevel()) + 1
+    return math.min(getMaxLevel(), math.max(1, level))
+end
+
+local function addProfileXp(profile, amount)
+    if not profile then
+        return 0
+    end
+
+    local previous = tonumber(profile.xp) or 0
+    profile.xp = math.min(getMaxXp(), math.max(0, previous + math.max(0, math.floor(tonumber(amount) or 0))))
+
+    return profile.xp - previous
+end
+
+local function getQuestRotation()
+    local dailyConfig = QuestConfig and QuestConfig.DailyContracts or {}
+    local rotationSeconds = math.max(3600, math.floor(tonumber(dailyConfig.rotationSeconds) or 86400))
+
+    return math.floor(os.time() / rotationSeconds)
+end
+
+local function nextQuestSeed(seed, maxValue)
+    seed = ((seed * 1103515245) + 12345) % 2147483647
+    return seed, (seed % maxValue) + 1
+end
+
+local function buildDailyQuestDefinitions()
+    local dailyConfig = QuestConfig and QuestConfig.DailyContracts or {}
+    if dailyConfig.enabled == false or type(dailyConfig.pool) ~= 'table' or #dailyConfig.pool == 0 then
+        return {}
+    end
+
+    local rotation = getQuestRotation()
+    if dailyQuestCache.rotation == rotation then
+        return dailyQuestCache.quests
+    end
+
+    local count = math.min(math.max(0, math.floor(tonumber(dailyConfig.count) or 3)), #dailyConfig.pool)
+    local indexes = {}
+    local quests = {}
+    local seed = rotation + 7331
+
+    for index = 1, #dailyConfig.pool do
+        indexes[index] = index
+    end
+
+    for index = #indexes, 2, -1 do
+        local swapIndex
+        seed, swapIndex = nextQuestSeed(seed, index)
+        indexes[index], indexes[swapIndex] = indexes[swapIndex], indexes[index]
+    end
+
+    for index = 1, count do
+        local template = dailyConfig.pool[indexes[index]]
+        local quest = {}
+
+        for key, value in pairs(template) do
+            quest[key] = value
+        end
+
+        quest.id = ('daily_%s_%s'):format(rotation, template.key or indexes[index])
+        quest.daily = true
+        quest.rotation = rotation
+        quests[#quests + 1] = quest
+    end
+
+    dailyQuestCache.rotation = rotation
+    dailyQuestCache.quests = quests
+
+    return quests
+end
+
+local function getQuestDefinitions()
+    local definitions = {}
+
+    for _, quest in ipairs((QuestConfig and QuestConfig.StaticContracts) or {}) do
+        definitions[#definitions + 1] = quest
+    end
+
+    for _, quest in ipairs(buildDailyQuestDefinitions()) do
+        definitions[#definitions + 1] = quest
+    end
+
+    return definitions
+end
+
+local function getQuestObjective(quest)
+    if quest.objective then
+        return quest.objective
+    end
+
+    return {
+        type = 'stash_item',
+        item = quest.requiredItem,
+        count = quest.requiredCount,
+    }
+end
+
+local function getQuestProgress(profile, quest)
+    local objective = getQuestObjective(quest)
+    local required = math.max(1, math.floor(tonumber(objective.count) or 1))
+    local current = 0
+
+    if objective.type == 'stash_item' and objective.item then
+        current = tonumber(profile.stash[objective.item]) or 0
+    elseif objective.type == 'stat' and objective.stat then
+        current = tonumber(profile[objective.stat]) or 0
+    end
+
+    return current, required, objective
 end
 
 local function buildQuestSnapshots(profile)
     local quests = {}
 
-    for _, quest in ipairs(QUEST_DEFINITIONS) do
-        local current = tonumber(profile.stash[quest.requiredItem]) or 0
-        local required = tonumber(quest.requiredCount) or 1
+    for _, quest in ipairs(getQuestDefinitions()) do
+        local current, required, objective = getQuestProgress(profile, quest)
         local claimed = profile.questClaims[quest.id] == true
 
         quests[#quests + 1] = {
             id = quest.id,
             title = quest.title,
+            category = quest.category or (quest.daily and 'Daily Contract' or 'Contract'),
             description = quest.description,
             progress = math.min(current, required),
             required = required,
             ready = current >= required and not claimed,
             claimed = claimed,
             rewards = quest.rewards,
+            objective = objective,
+            daily = quest.daily == true,
+            rotation = quest.rotation,
         }
     end
 
@@ -637,7 +735,7 @@ local function getTraderOffer(itemName)
 end
 
 local function getQuestDefinition(questId)
-    for _, quest in ipairs(QUEST_DEFINITIONS) do
+    for _, quest in ipairs(getQuestDefinitions()) do
         if quest.id == questId then
             return quest
         end
@@ -665,6 +763,11 @@ local function buildProfileSnapshot(source)
         cash = profile.cash,
         xp = profile.xp,
         level = getLevelFromXp(profile.xp),
+        progression = {
+            xpPerLevel = getXpPerLevel(),
+            maxLevel = getMaxLevel(),
+            maxXp = getMaxXp(),
+        },
         raids = profile.raids,
         extractions = profile.extractions,
         deaths = profile.deaths,
@@ -1798,7 +1901,7 @@ RegisterNetEvent('standalone_extraction:server:extract', function(extractId)
 
     addLoot(profile.stash, raid.carry)
     profile.extractions = profile.extractions + 1
-    profile.xp = profile.xp + math.max(25, math.floor(runValue * Config.Progression.xpPerValue))
+    addProfileXp(profile, math.max(25, math.floor(runValue * Config.Progression.xpPerValue)))
     profile.bestRunValue = math.max(profile.bestRunValue, runValue)
 
     clearLoot(raid.carry)
@@ -1982,8 +2085,7 @@ RegisterNetEvent('standalone_extraction:server:claimQuestReward', function(quest
         return
     end
 
-    local current = tonumber(profile.stash[quest.requiredItem]) or 0
-    local required = tonumber(quest.requiredCount) or 1
+    local current, required = getQuestProgress(profile, quest)
     if current < required then
         notify(source, 'Quest objective is not complete yet.')
         TriggerClientEvent('extraction_lobby:client:update', source, buildProfileSnapshot(source))
@@ -1992,7 +2094,7 @@ RegisterNetEvent('standalone_extraction:server:claimQuestReward', function(quest
 
     local rewards = quest.rewards or {}
     profile.cash = profile.cash + (tonumber(rewards.cash) or 0)
-    profile.xp = profile.xp + (tonumber(rewards.xp) or 0)
+    addProfileXp(profile, tonumber(rewards.xp) or 0)
 
     for itemName, count in pairs(rewards.items or {}) do
         if getItemDefinition(itemName) then

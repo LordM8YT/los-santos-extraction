@@ -148,6 +148,7 @@ Config.RaidVehicles = {
 Config.Progression = {
     xpPerValue = 0.18,
     xpPerLevel = 700,
+    maxLevel = 100,
 }
 
 Config.StarterKit = {

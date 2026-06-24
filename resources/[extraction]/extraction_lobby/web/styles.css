@@ -1034,6 +1034,7 @@ dd { margin: 0; color: var(--paper); }
 .mission-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .mission-card { padding: 13px; min-height: 112px; }
 .mission-card.active { border-color: var(--line-hot); background: rgba(212, 176, 106, 0.09); }
+.mission-card.daily { border-color: rgba(123, 185, 198, 0.32); background: rgba(123, 185, 198, 0.055); }
 .mission-card.is-claimable {
   border-color: rgba(152, 200, 143, 0.7);
   background: linear-gradient(180deg, rgba(152, 200, 143, 0.13), rgba(5, 6, 5, 0.7));

@@ -43,12 +43,7 @@ const survivalMeta = document.getElementById("survivalMeta");
 const targetProgress = document.getElementById("targetProgress");
 const extractProgress = document.getElementById("extractProgress");
 const recommendedAction = document.getElementById("recommendedAction");
-const medicalQuestText = document.getElementById("medicalQuestText");
-const medicalQuestBar = document.getElementById("medicalQuestBar");
-const medicalQuestState = document.getElementById("medicalQuestState");
-const intelQuestText = document.getElementById("intelQuestText");
-const intelQuestBar = document.getElementById("intelQuestBar");
-const intelQuestState = document.getElementById("intelQuestState");
+const missionBoard = document.getElementById("missionBoard");
 const weaponSlot = document.getElementById("weaponSlot");
 const ammoSlot = document.getElementById("ammoSlot");
 const gearSlot = document.getElementById("gearSlot");
@@ -132,6 +127,11 @@ function fallbackSnapshot() {
     stashValue: 0,
     stash: [],
     carry: [],
+    progression: {
+      xpPerLevel: XP_PER_LEVEL,
+      maxLevel: 100,
+      maxXp: 69300,
+    },
     trader: {
       items: [],
     },
@@ -390,32 +390,42 @@ function renderList(target, entries, emptyText, container = {}) {
   `);
 }
 
-function renderQuest(snapshot, questId, elements) {
-  const quest = getQuest(snapshot, questId);
-  if (!quest) {
+function renderQuestBoard(snapshot) {
+  if (!missionBoard) {
     return;
   }
 
-  const progress = Number(quest.progress || 0);
-  const required = Number(quest.required || 1);
-  const percent = required > 0 ? (progress / required) * 100 : 0;
-  const state = quest.claimed ? "Claimed" : quest.ready ? "Ready To Claim" : "In Progress";
-  const button = document.querySelector(`[data-action="claimQuest"][data-quest-id="${questId}"]`);
-  const card = document.querySelector(`[data-quest-card="${questId}"]`);
+  const quests = snapshot.quests || [];
 
-  setText(elements.state, state);
-  setText(elements.text, `${quest.description} Progress: ${formatNumber(progress)} / ${formatNumber(required)}. Reward: ${rewardText(quest.rewards)}.`);
-  setProgress(elements.bar, percent);
-
-  if (button) {
-    button.disabled = !quest.ready || quest.claimed;
-    button.textContent = quest.claimed ? "Claimed" : quest.ready ? "Claim Reward" : "Locked";
+  if (quests.length === 0) {
+    setHtml(missionBoard, `<article class="mission-card"><span>Offline</span><strong>No Contracts</strong><p>The task board has no active work right now.</p></article>`);
+    return;
   }
 
-  if (card) {
-    card.classList.toggle("is-claimable", Boolean(quest.ready));
-    card.classList.toggle("is-claimed", Boolean(quest.claimed));
-  }
+  setHtml(missionBoard, quests
+    .map((quest) => {
+      const progress = Number(quest.progress || 0);
+      const required = Number(quest.required || 1);
+      const percent = required > 0 ? (progress / required) * 100 : 0;
+      const state = quest.claimed ? "Claimed" : quest.ready ? "Ready To Claim" : "In Progress";
+      const cardClass = [
+        "mission-card",
+        quest.daily ? "daily" : "active",
+        quest.ready ? "is-claimable" : "",
+        quest.claimed ? "is-claimed" : "",
+      ].filter(Boolean).join(" ");
+
+      return `
+        <article class="${cardClass}" data-quest-card="${escapeHtml(quest.id)}">
+          <span>${escapeHtml(quest.category || (quest.daily ? "Daily Contract" : "Contract"))}</span>
+          <strong>${escapeHtml(quest.title || "Contract")}</strong>
+          <p>${escapeHtml(quest.description || "")} Progress: ${formatNumber(progress)} / ${formatNumber(required)}. Reward: ${escapeHtml(rewardText(quest.rewards))}.</p>
+          <div class="progress-line"><i style="width:${clamp(percent, 0, 100)}%"></i></div>
+          <button class="small-button claim-button" data-action="claimQuest" data-quest-id="${escapeHtml(quest.id)}" ${quest.ready && !quest.claimed ? "" : "disabled"} type="button">${quest.claimed ? "Claimed" : quest.ready ? "Claim Reward" : "Locked"}</button>
+        </article>
+      `;
+    })
+    .join(""));
 }
 
 function renderGearSlot(slot, state) {
@@ -510,9 +520,11 @@ function renderReadiness(snapshot, sellableStash, loadout) {
   const hasWeapon = loadout.some((entry) => entry.type === "weapon");
   const hasAmmo = loadout.some((entry) => entry.type === "ammo" && Number(entry.count || 0) > 0);
   const canDeploy = !snapshot.raidActive && !deployLocked;
-  const nextLevelXp = Math.max(0, (Number(snapshot.level || 1) * XP_PER_LEVEL) - Number(snapshot.xp || 0));
-  const medicalQuest = getQuest(snapshot, "first_blood_sample");
-  const intelQuest = getQuest(snapshot, "find_the_signal");
+  const progression = snapshot.progression || {};
+  const xpPerLevel = Number(progression.xpPerLevel || XP_PER_LEVEL);
+  const maxLevel = Number(progression.maxLevel || 100);
+  const isMaxLevel = Number(snapshot.level || 1) >= maxLevel;
+  const nextLevelXp = isMaxLevel ? 0 : Math.max(0, (Number(snapshot.level || 1) * xpPerLevel) - Number(snapshot.xp || 0));
 
   setText(readyKitState, hasWeapon && hasAmmo ? "Armed" : hasWeapon ? "Needs ammo" : "Starter kit");
   setText(entryFeeState, "$0");
@@ -523,29 +535,15 @@ function renderReadiness(snapshot, sellableStash, loadout) {
   setText(extractProgress, `${Math.min(3, extracts)} / 3`);
   setText(recommendedAction, hasWeapon && hasAmmo ? `Deploy or sell ${formatNumber(sellableStash.length)} loot stacks` : "Check loadout before deploy");
   setText(deployHint, snapshot.raidActive ? "You already have an active raid." : hasWeapon && hasAmmo ? "Kit verified. Enter the live Los Santos open zone." : "Starter kit available. Consider checking loadout first.");
-  if (medicalQuest) {
-    renderQuest(snapshot, "first_blood_sample", {
-      state: medicalQuestState,
-      text: medicalQuestText,
-      bar: medicalQuestBar,
-    });
-  }
-
-  if (intelQuest) {
-    renderQuest(snapshot, "find_the_signal", {
-      state: intelQuestState,
-      text: intelQuestText,
-      bar: intelQuestBar,
-    });
-  }
+  renderQuestBoard(snapshot);
 
   if (deployButton) {
     deployButton.disabled = !canDeploy;
   }
 
-  const currentLevelStart = (Number(snapshot.level || 1) - 1) * XP_PER_LEVEL;
-  const levelProgress = ((Number(snapshot.xp || 0) - currentLevelStart) / XP_PER_LEVEL) * 100;
-  setHtml(stats, `${stats?.innerHTML || ""}<div class="stat progress-stat"><span class="stat-label">Next Level</span><span class="stat-value">${formatNumber(nextLevelXp)} XP</span><i style="width:${clamp(levelProgress, 0, 100)}%"></i></div>`);
+  const currentLevelStart = (Number(snapshot.level || 1) - 1) * xpPerLevel;
+  const levelProgress = isMaxLevel ? 100 : ((Number(snapshot.xp || 0) - currentLevelStart) / xpPerLevel) * 100;
+  setHtml(stats, `${stats?.innerHTML || ""}<div class="stat progress-stat"><span class="stat-label">${isMaxLevel ? "Level Cap" : "Next Level"}</span><span class="stat-value">${isMaxLevel ? `MAX ${formatNumber(maxLevel)}` : `${formatNumber(nextLevelXp)} XP`}</span><i style="width:${clamp(levelProgress, 0, 100)}%"></i></div>`);
 }
 
 function renderTrader(snapshot) {

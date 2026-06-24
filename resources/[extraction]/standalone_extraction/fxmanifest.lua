@@ -16,7 +16,8 @@ dependencies {
 
 shared_scripts {
     'config.lua',
-    'shared/session_config.lua'
+    'shared/session_config.lua',
+    'shared/quest_config.lua'
 }
 
 client_scripts {

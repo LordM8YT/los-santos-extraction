@@ -59,7 +59,7 @@ Admin tooling is kept outside this folder in `resources/[admin]`:
 - Player data is stored in `standalone_extraction/data/players.json`.
 - `ox_inventory` is the target inventory provider. The old `extraction_inventory` resource remains only as a compatibility wrapper until `standalone_extraction` is migrated off its legacy snapshot events.
 - Weapon and ammo loot can be extended through `extraction_weapons`. The current implementation uses vanilla GTA weapons first, so a third-party weapon pack can be added later by mapping add-on weapon names/hashes in one adapter resource.
-- Quest rewards are currently handled in `standalone_extraction` as a small profile-backed prototype. Claimed quest IDs are stored on the player profile in `questClaims`.
+- Quest rewards are currently handled in `standalone_extraction` as a small profile-backed prototype. Contract definitions live in `standalone_extraction/shared/quest_config.lua`; claimed quest IDs are stored on the player profile in `questClaims`.
 - Trader catalog data lives in `extraction_traders`; player cash/stash mutations stay server-authoritative in `standalone_extraction`.
 - Safehouse inventory is integrated into `extraction_lobby`. `extraction_inventory` is the separate field inventory used while in raid.
 - Initial join uses lobby staging: the player ped is hidden/frozen behind the lobby UI and should not become playable until raid start.
