@@ -17,6 +17,8 @@ Custom project resources live in `resources/[extraction]`.
 
 - `extraction_items`
   Shared item registry and tetris-ready item/container definitions.
+- `lsx_core`
+  Standalone LSX framework core with ox-style player, group, status, license, statebag, and event surfaces.
 - `extraction_core`
   Shared foundation for identifiers, logging, constants, and future routing bucket ownership.
 - `extraction_admin`
@@ -65,6 +67,7 @@ ensure ox_lib
 ensure EasyAdmin
 ensure extraction_items
 ensure extraction_loadscreen
+ensure lsx_core
 ensure extraction_core
 ensure extraction_admin
 ensure extraction_chat

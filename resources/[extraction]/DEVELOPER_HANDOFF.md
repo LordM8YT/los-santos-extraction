@@ -6,6 +6,8 @@ This folder contains a standalone FiveM extraction prototype. The current goal i
 
 - `extraction_items`
   Shared item registry with tetris metadata and future container templates.
+- `lsx_core`
+  Standalone LSX framework core. Provides ox-style player objects, identifiers, groups, statuses, licenses, statebag replication, and compatibility events without jobs, RP death, banking, hospitals, or vehicle ownership.
 - `extraction_weapons`
   Weapon-pack adapter. Registers lootable weapon/ammo items and exposes weapon loot tables without coupling streamed weapon packs into the raid loop.
 - `extraction_traders`
@@ -53,6 +55,7 @@ Admin tooling is kept outside this folder in `resources/[admin]`:
 
 - Raids are private instances per player using routing buckets.
 - `extraction_core` now owns the future shared bucket allocator, but the current prototype still uses its existing raid flow until migrated.
+- `lsx_core` is the new framework layer. Existing resources should migrate to its exports/events gradually instead of calling third-party framework APIs directly.
 - Player data is stored in `standalone_extraction/data/players.json`.
 - Inventory is custom and standalone for now. `extraction_items` is the new shared registry for the future tetris inventory migration.
 - Inventory UI now renders a visual tetris/grid layout in both the lobby armory and raid inventory. Item placement is still derived client-side from item dimensions/count snapshots; server-authoritative drag/drop placement is not implemented yet.
@@ -79,6 +82,7 @@ Admin tooling is kept outside this folder in `resources/[admin]`:
 - Party system with shared raid buckets and party leader flow.
 - Cleaner HUD pass once the gameplay loop is more complete.
 - Adapter layer for `ox_lib`, `oxmysql`, and/or `ox_inventory` after the database and inventory provider strategy is locked.
+- `lsx_inventory_ox` adapter/fork bridge so `ox_inventory` can speak to `lsx_core` without requiring LSX gameplay to depend on ox jobs, accounts, hospitals, or character selection.
 
 ## Notes For Future Developers
 
@@ -88,3 +92,4 @@ Admin tooling is kept outside this folder in `resources/[admin]`:
 - Do not rename item keys without a migration for `data/players.json`.
 - `ox_inventory` should be tested through `ox_core`, not ESX/QBCore. Import `resources/[overextended]/ox_core/sql/install.sql`, set `mysql_connection_string`, then start `oxmysql`, `ox_core`, and `ox_inventory` with the no-RP convars from `server.example.cfg` before attempting a gameplay migration.
 - Do not wire LSX features to ox jobs, groups, hospitals, character selection, vehicle ownership, or account systems. If ox inventory becomes permanent, build an LSX adapter or maintain a fork instead of allowing hidden RP framework coupling.
+- New gameplay resources should depend on `lsx_core` for player data and only depend on ox resources through explicit adapter resources.
