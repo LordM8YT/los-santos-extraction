@@ -305,12 +305,12 @@ html.hud-closed body {
 
 .bottom-left {
     position: absolute;
-    bottom: 22vh;
+    bottom: 20.4vh;
     left: 1.35vw;
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
-    width: min(23rem, 29vw);
+    width: min(25rem, 31vw);
 }
 
 .vitals-panel,
@@ -327,8 +327,121 @@ html.hud-closed body {
 }
 
 .vitals-panel {
-    padding: 0.72rem;
-    clip-path: polygon(0 0, calc(100% - 0.8rem) 0, 100% 0.8rem, 100% 100%, 0 100%);
+    position: relative;
+    padding: 0.72rem 0.8rem 0.86rem;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 12% 16%, rgba(174, 245, 98, 0.16), transparent 34%),
+        linear-gradient(135deg, rgba(7, 12, 13, 0.86), rgba(5, 8, 9, 0.68));
+    clip-path: polygon(0 0, calc(100% - 1.15rem) 0, 100% 1.15rem, 100% 100%, 1.15rem 100%, 0 calc(100% - 1.15rem));
+}
+
+.vitals-panel::before {
+    content: "BIOMETRIC LINK";
+    position: absolute;
+    right: 0.62rem;
+    bottom: 0.4rem;
+    color: rgba(174, 245, 98, 0.28);
+    font-size: 0.48rem;
+    font-weight: 900;
+    letter-spacing: 0.18em;
+}
+
+.vitals-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.62rem;
+}
+
+.vital-dial {
+    --dial-color: var(--green);
+    --dial-bg: rgba(174, 245, 98, 0.09);
+    display: grid;
+    justify-items: center;
+    gap: 0.22rem;
+    min-width: 0;
+}
+
+.vital-dial.armor {
+    --dial-color: var(--blue);
+    --dial-bg: rgba(120, 202, 255, 0.09);
+}
+
+.vital-dial.stamina {
+    --dial-color: var(--amber);
+    --dial-bg: rgba(230, 182, 95, 0.09);
+}
+
+.vital-ring {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 4.1rem;
+    height: 4.1rem;
+    border-radius: 50%;
+    background:
+        radial-gradient(circle, rgba(5, 8, 9, 0.94) 0 54%, transparent 55%),
+        conic-gradient(var(--dial-color) var(--percent), rgba(238, 248, 233, 0.1) 0),
+        var(--dial-bg);
+    box-shadow:
+        inset 0 0 0 1px rgba(238, 248, 233, 0.1),
+        0 0 22px rgba(174, 245, 98, 0.18);
+}
+
+.vital-dial.armor .vital-ring {
+    box-shadow:
+        inset 0 0 0 1px rgba(238, 248, 233, 0.1),
+        0 0 22px rgba(120, 202, 255, 0.16);
+}
+
+.vital-dial.stamina .vital-ring {
+    box-shadow:
+        inset 0 0 0 1px rgba(238, 248, 233, 0.1),
+        0 0 22px rgba(230, 182, 95, 0.16);
+}
+
+.vital-ring::before {
+    content: "";
+    position: absolute;
+    inset: 0.34rem;
+    border: 1px solid rgba(238, 248, 233, 0.1);
+    border-radius: 50%;
+}
+
+.vital-ring::after {
+    content: "";
+    position: absolute;
+    top: 0.28rem;
+    width: 0.38rem;
+    height: 0.38rem;
+    border-radius: 50%;
+    background: var(--dial-color);
+    box-shadow: 0 0 10px var(--dial-color);
+}
+
+.vital-ring span {
+    position: relative;
+    color: var(--ink);
+    font-size: 1.12rem;
+    font-weight: 900;
+    letter-spacing: 0.03em;
+}
+
+.vital-label,
+.vital-unit {
+    font-size: 0.54rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    line-height: 1;
+    text-transform: uppercase;
+}
+
+.vital-label {
+    color: rgba(238, 248, 233, 0.78);
+}
+
+.vital-unit {
+    color: var(--muted);
 }
 
 .scanner-panel {

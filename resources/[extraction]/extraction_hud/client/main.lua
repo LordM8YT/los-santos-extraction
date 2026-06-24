@@ -23,6 +23,7 @@ local hudHiddenComponents = {
 
 local nextMinimapEnforce = 0
 local nextCameraEnforce = 0
+local minimapScaleform
 local send
 local settingsKvpKey = 'extraction_hud:client_settings'
 local combatViewConfig = ExtractionHudConfig and ExtractionHudConfig.CombatView or {}
@@ -140,6 +141,12 @@ local function applyMinimapCleanup(showRadar)
     local shouldEnforce = now >= nextMinimapEnforce
 
     DisplayRadar(showRadar)
+
+    if showRadar and config.hideNativeHealthArmor ~= false and minimapScaleform and HasScaleformMovieLoaded(minimapScaleform) then
+        BeginScaleformMovieMethod(minimapScaleform, 'SETUP_HEALTH_ARMOUR')
+        ScaleformMovieMethodAddParamInt(3)
+        EndScaleformMovieMethod()
+    end
 
     if shouldEnforce then
         nextMinimapEnforce = now + (config.enforceIntervalMs or 500)
@@ -349,6 +356,7 @@ end)
 
 CreateThread(function()
     loadClientSettings()
+    minimapScaleform = RequestScaleformMovie('minimap')
     SetNuiFocus(false, false)
     SetNuiFocusKeepInput(false)
     send('boot', {})

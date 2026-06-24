@@ -70,6 +70,21 @@ function Meter({ label, value, variant }) {
     );
 }
 
+function VitalDial({ label, value, variant, unit = '%' }) {
+    const safeValue = clamp(value);
+
+    return e(
+        'div',
+        {
+            className: `vital-dial ${variant || ''}`,
+            style: { '--percent': `${safeValue}%` },
+        },
+        e('div', { className: 'vital-ring' }, e('span', null, Math.floor(safeValue))),
+        e('div', { className: 'vital-label' }, label),
+        e('div', { className: 'vital-unit' }, unit)
+    );
+}
+
 function RaidBar({ raid, status }) {
     if (!raid.active) {
         return null;
@@ -126,9 +141,13 @@ function VitalsPanel({ status }) {
             e('span', { className: 'sector-name' }, location || 'Unknown Sector'),
             e('span', { className: 'subtle' }, status.inVehicle ? 'Mobile' : 'On Foot')
         ),
-        e(Meter, { label: 'Health', value: status.health }),
-        e(Meter, { label: 'Armor', value: status.armor, variant: 'armor' }),
-        e(Meter, { label: 'Stamina', value: status.stamina, variant: 'stamina' })
+        e(
+            'div',
+            { className: 'vitals-grid' },
+            e(VitalDial, { label: 'Health', value: status.health, variant: 'health' }),
+            e(VitalDial, { label: 'Armor', value: status.armor, variant: 'armor' }),
+            e(VitalDial, { label: 'O2', value: status.stamina, variant: 'stamina' })
+        )
     );
 }
 

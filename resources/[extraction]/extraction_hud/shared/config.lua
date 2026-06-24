@@ -13,6 +13,7 @@ ExtractionHudConfig = {
         showInVehicle = true,
         zoom = 1150,
         hideNorthBlip = true,
+        hideNativeHealthArmor = true,
         forceSmallMap = true,
         enforceIntervalMs = 500,
         scannerRangeMeters = 220,
