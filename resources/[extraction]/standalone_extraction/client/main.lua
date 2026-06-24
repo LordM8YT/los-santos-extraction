@@ -20,6 +20,7 @@ local summaryPanel = {
 local extractionBlips = {}
 local lootBlips = {}
 local deathSignalBlips = {}
+local lobbyBlips = {}
 local deathSignals = {}
 local raidVehicles = {}
 local interactionBusy = false
@@ -710,21 +711,41 @@ local function createLobbyBlips()
         return
     end
 
+    for _, existingBlip in ipairs(lobbyBlips) do
+        if DoesBlipExist(existingBlip) then
+            RemoveBlip(existingBlip)
+        end
+    end
+
+    lobbyBlips = {}
+
     local blip = AddBlipForCoord(Config.Lobby.join.coords.x, Config.Lobby.join.coords.y, Config.Lobby.join.coords.z)
     SetBlipSprite(blip, 568)
     SetBlipScale(blip, 0.9)
     SetBlipColour(blip, 3)
+    SetBlipAsShortRange(blip, true)
     BeginTextCommandSetBlipName('STRING')
     AddTextComponentSubstringPlayerName('Extraction Hub')
     EndTextCommandSetBlipName(blip)
+    lobbyBlips[#lobbyBlips + 1] = blip
 
     local traderBlip = AddBlipForCoord(Config.Lobby.trader.coords.x, Config.Lobby.trader.coords.y, Config.Lobby.trader.coords.z)
     SetBlipSprite(traderBlip, 500)
     SetBlipScale(traderBlip, 0.8)
     SetBlipColour(traderBlip, 2)
+    SetBlipAsShortRange(traderBlip, true)
     BeginTextCommandSetBlipName('STRING')
     AddTextComponentSubstringPlayerName('Extraction Trader')
     EndTextCommandSetBlipName(traderBlip)
+    lobbyBlips[#lobbyBlips + 1] = traderBlip
+end
+
+local function setLobbyBlipsVisible(visible)
+    for _, blip in ipairs(lobbyBlips) do
+        if DoesBlipExist(blip) then
+            SetBlipDisplay(blip, visible and 2 or 0)
+        end
+    end
 end
 
 local function progressAction(label, duration, animDict, animClip)
@@ -865,6 +886,7 @@ RegisterNetEvent('standalone_extraction:client:startRaid', function(payload)
     raidState.extractions = payload.extractions or {}
     raidState.deathDrops = payload.deathDrops or {}
 
+    setLobbyBlipsVisible(false)
     setLobbyStaging(false)
     createExtractionBlips()
     CreateThread(spawnRaidVehicles)
@@ -927,6 +949,7 @@ RegisterNetEvent('standalone_extraction:client:endRaid', function(payload)
     teleportTo(payload.lobby)
     resetRaidState()
     setLobbyStaging(true)
+    setLobbyBlipsVisible(true)
 
     if payload.message and payload.message ~= '' then
         notify(payload.message)

@@ -50,19 +50,19 @@ Config.Lobby = {
     openUiDelay = 350,
     worldActionsEnabled = false, -- New lobby UI replaces the old hub E-marker menus.
     stagingModel = 'mp_m_freemode_01',
-    spawn = vec4(-1037.76, -2737.83, 20.17, 240.0),
+    spawn = vec4(1736.92, 3294.24, 41.14, 194.0),
     join = {
-        coords = vec3(-1040.31, -2732.27, 20.17),
+        coords = vec3(1734.82, 3290.77, 41.11),
         label = 'Start raid',
         color = { r = 70, g = 170, b = 255, a = 150 }
     },
     trader = {
-        coords = vec3(-1033.18, -2734.17, 20.17),
+        coords = vec3(1742.12, 3292.37, 41.11),
         label = 'Sell secured loot',
         color = { r = 90, g = 255, b = 125, a = 150 }
     },
     stats = {
-        coords = vec3(-1039.58, -2741.08, 20.17),
+        coords = vec3(1730.65, 3296.78, 41.11),
         label = 'View stash and stats',
         color = { r = 255, g = 215, b = 95, a = 150 }
     }
