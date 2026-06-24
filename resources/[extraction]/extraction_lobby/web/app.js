@@ -24,6 +24,12 @@ const deployHint = document.getElementById("deployHint");
 const sellHint = document.getElementById("sellHint");
 const stashPreview = document.getElementById("stashPreview");
 const loadoutPreview = document.getElementById("loadoutPreview");
+const oxInventoryBridge = document.getElementById("oxInventoryBridge");
+const legacyStashBrowser = document.getElementById("legacyStashBrowser");
+const legacyLoadoutBrowser = document.getElementById("legacyLoadoutBrowser");
+const stashProviderLabel = document.getElementById("stashProviderLabel");
+const loadoutProviderLabel = document.getElementById("loadoutProviderLabel");
+const loadoutRuleText = document.getElementById("loadoutRuleText");
 const stashMeta = document.getElementById("stashMeta");
 const loadoutMeta = document.getElementById("loadoutMeta");
 const viewKicker = document.getElementById("viewKicker");
@@ -53,6 +59,7 @@ const traderItems = document.getElementById("traderItems");
 
 let currentSnapshot = null;
 let currentView = "deploy";
+let inventoryProvider = "legacy";
 let toastTimer = null;
 let deployLockTimer = null;
 let deployLocked = false;
@@ -589,6 +596,7 @@ function render(snapshot) {
   const stash = snapshot.stash || [];
   const sellableStash = stash.filter((entry) => !isLoadoutItem(entry));
   const loadout = stash.filter(isLoadoutItem);
+  const useOxInventory = inventoryProvider === "ox";
   const totalStashItems = stash.reduce((total, entry) => total + Number(entry.count || 0), 0);
   const levelText = snapshot.loading ? "Loading contractor" : `Level ${formatNumber(snapshot.level)} Contractor`;
 
@@ -599,8 +607,24 @@ function render(snapshot) {
   setText(raidStatus, snapshot.raidActive ? "Safehouse ready / raid active" : "Safehouse ready");
 
   renderStats(snapshot);
-  renderList(stashPreview, sellableStash, "No secured sellable loot yet", snapshot.containers?.stash);
-  renderList(loadoutPreview, loadout, "No loadout items in stash", snapshot.containers?.loadout);
+  if (useOxInventory) {
+    oxInventoryBridge.hidden = false;
+    legacyStashBrowser.hidden = true;
+    legacyLoadoutBrowser.hidden = true;
+    setText(stashProviderLabel, "Ox Provider");
+    setText(loadoutProviderLabel, "Ox Loadout");
+    setText(loadoutRuleText, "Managed by ox_inventory");
+  } else {
+    oxInventoryBridge.hidden = true;
+    legacyStashBrowser.hidden = false;
+    legacyLoadoutBrowser.hidden = false;
+    setText(stashProviderLabel, "Secured Inventory");
+    setText(loadoutProviderLabel, "Loadout Pool");
+    setText(loadoutRuleText, "Weapons and ammo deploy from stash");
+    renderList(stashPreview, sellableStash, "No secured sellable loot yet", snapshot.containers?.stash);
+    renderList(loadoutPreview, loadout, "No loadout items in stash", snapshot.containers?.loadout);
+  }
+
   renderLoadoutSlots(snapshot, loadout);
   renderReadiness(snapshot, sellableStash, loadout);
   renderTrader(snapshot);
@@ -619,6 +643,7 @@ function render(snapshot) {
 }
 
 function open(payload = {}) {
+  inventoryProvider = payload.inventoryProvider || inventoryProvider || "legacy";
   document.documentElement.classList.remove("nui-hidden");
   document.documentElement.classList.add("lobby-open");
   document.body.classList.add("lobby-open");
@@ -650,6 +675,7 @@ window.addEventListener("message", (event) => {
   }
 
   if (action === "update") {
+    inventoryProvider = payload?.inventoryProvider || inventoryProvider || "legacy";
     render(payload?.snapshot || currentSnapshot || fallbackSnapshot());
   }
 
@@ -713,6 +739,12 @@ document.addEventListener("click", (event) => {
   if (action === "logout") {
     showToast("Logging out from safehouse...");
     post("logout");
+    return;
+  }
+
+  if (action === "openInventory") {
+    showToast("Opening ox inventory...");
+    post("openInventory");
     return;
   }
 

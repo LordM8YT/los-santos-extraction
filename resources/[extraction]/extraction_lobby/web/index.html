@@ -206,8 +206,14 @@
               </article>
 
               <article class="stash-terminal">
-                <div class="panel-head"><p class="eyebrow">Safehouse Stash</p><span>Secured Inventory</span></div>
-                <div class="mini-inventory-browser">
+                <div class="panel-head"><p class="eyebrow">Safehouse Stash</p><span id="stashProviderLabel">Secured Inventory</span></div>
+                <div id="oxInventoryBridge" class="ox-inventory-bridge" hidden>
+                  <span>OX Inventory Online</span>
+                  <strong>Use the inventory provider for stash and loadout management.</strong>
+                  <em>Legacy lobby grids are disabled while ox_inventory is active to avoid desync.</em>
+                  <button class="small-button" data-action="openInventory" type="button">Open Ox Inventory</button>
+                </div>
+                <div id="legacyStashBrowser" class="mini-inventory-browser">
                   <div class="mini-category-rail" aria-hidden="true">
                     <span class="is-active">ALL</span>
                     <span>LOOT</span>
@@ -224,8 +230,10 @@
               </article>
 
               <article class="loadout-terminal">
-                <div class="panel-head"><p class="eyebrow">Stored Weapons</p><span>Loadout Pool</span></div>
-                <div id="loadoutPreview" class="crate-grid compact"></div>
+                <div class="panel-head"><p class="eyebrow">Stored Weapons</p><span id="loadoutProviderLabel">Loadout Pool</span></div>
+                <div id="legacyLoadoutBrowser">
+                  <div id="loadoutPreview" class="crate-grid compact"></div>
+                </div>
                 <div class="mini-utility-grid">
                   <div>
                     <span>Quick Use</span>
@@ -238,7 +246,7 @@
                 </div>
                 <div class="loadout-note">
                   <span>Active Rule</span>
-                  <strong>Weapons and ammo deploy from stash</strong>
+                  <strong id="loadoutRuleText">Weapons and ammo deploy from stash</strong>
                 </div>
               </article>
             </div>

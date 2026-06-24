@@ -35,6 +35,10 @@ local function send(action, payload)
     })
 end
 
+local function isOxInventoryActive()
+    return GetResourceState('ox_inventory') == 'started'
+end
+
 local function loadSettings()
     local encoded = GetResourceKvpString(settingsKvpKey)
 
@@ -107,6 +111,7 @@ local function openUi(defaultView)
         snapshot = latestSnapshot or fallbackSnapshot(),
         view = defaultView,
         settings = clientSettings,
+        inventoryProvider = isOxInventoryActive() and 'ox' or 'legacy',
     })
     requestSnapshot()
     syncHudSettings()
@@ -128,7 +133,8 @@ RegisterNetEvent('extraction_lobby:client:update', function(snapshot)
 
     if uiOpen then
         send('update', {
-            snapshot = latestSnapshot or fallbackSnapshot()
+            snapshot = latestSnapshot or fallbackSnapshot(),
+            inventoryProvider = isOxInventoryActive() and 'ox' or 'legacy',
         })
     end
 end)
@@ -174,8 +180,14 @@ RegisterNUICallback('logout', function(_, cb)
 end)
 
 RegisterNUICallback('openInventory', function(_, cb)
-    send('setView', { view = 'loadout' })
-    requestSnapshot()
+    if isOxInventoryActive() then
+        closeUi()
+        exports.ox_inventory:openInventory()
+    else
+        send('setView', { view = 'loadout' })
+        requestSnapshot()
+    end
+
     cb({ ok = true })
 end)
 
