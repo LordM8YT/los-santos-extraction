@@ -14,6 +14,8 @@ This folder contains a standalone FiveM extraction prototype. The current goal i
   Standalone trader catalog. Start before `standalone_extraction`; purchases are still validated and applied by `standalone_extraction`.
 - `extraction_core`
   Modular v2 foundation: shared config, constants, logging, player identifiers, and routing bucket allocation.
+- `lsx_platform`
+  FiveM platform adapter layer. Owns platform-specific services as they are extracted from gameplay code; currently handles raid timecycle/weather selection and client application.
 - `extraction_admin`
   Project-specific admin helpers. Current commands: `/copycoords`, `/coords`, `/coords vec4`, and `/coords table`. Access is gated by the same `easyadmin` ACE permission as EasyAdmin.
 - `standalone_extraction`
@@ -54,6 +56,7 @@ Admin tooling is kept outside this folder in `resources/[admin]`:
 ## Current Design
 
 - Raids are private instances per player using routing buckets.
+- FiveM should be treated as a platform adapter. New gameplay code should prefer `lsx_platform` services over direct FiveM native calls where practical.
 - `extraction_core` now owns the future shared bucket allocator, but the current prototype still uses its existing raid flow until migrated.
 - `lsx_core` is the new framework layer. Existing resources should migrate to its exports/events gradually instead of calling third-party framework APIs directly.
 - Player data is stored in `standalone_extraction/data/players.json`.

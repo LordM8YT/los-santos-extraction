@@ -886,13 +886,14 @@ RegisterNetEvent('standalone_extraction:client:startRaid', function(payload)
     raidState.extractions = payload.extractions or {}
     raidState.deathDrops = payload.deathDrops or {}
 
+    TriggerEvent('lsx_platform:client:applyTimecycle', payload.timecycle)
     setLobbyBlipsVisible(false)
     setLobbyStaging(false)
     createExtractionBlips()
     CreateThread(spawnRaidVehicles)
     teleportTo(payload.spawn)
     applyRaidLoadout(payload.loadout)
-    notify(('Raid started. %s loot caches are active across the city.'):format(#lootSpots))
+    notify(('%s started. %s loot caches are active across the city.'):format((payload.timecycle and payload.timecycle.label) or 'Raid', #lootSpots))
 end)
 
 RegisterNetEvent('standalone_extraction:client:lootResult', function(payload)
@@ -947,6 +948,7 @@ RegisterNetEvent('standalone_extraction:client:endRaid', function(payload)
     end
 
     teleportTo(payload.lobby)
+    TriggerEvent('lsx_platform:client:resetTimecycle')
     resetRaidState()
     setLobbyStaging(true)
     setLobbyBlipsVisible(true)

@@ -1605,6 +1605,7 @@ end
 local function startSession(players)
     local sessionId = nextRaidId
     nextRaidId = nextRaidId + 1
+    local timecycle = exports.lsx_platform:SelectRaidTimecycle(SessionConfig.Timecycle)
 
     local session = {
         id = sessionId,
@@ -1616,6 +1617,7 @@ local function startSession(players)
         lootStashes = {},
         deathDrops = {},
         extractionIds = chooseSessionExtractions(),
+        timecycle = timecycle,
     }
 
     activeSessions[sessionId] = session
@@ -1664,6 +1666,7 @@ local function startSession(players)
                     loadout = loadout,
                     extractions = buildExtractionPayload(session.extractionIds),
                     deathDrops = buildDeathDropPayload(session),
+                    timecycle = session.timecycle,
                 })
             end
         end

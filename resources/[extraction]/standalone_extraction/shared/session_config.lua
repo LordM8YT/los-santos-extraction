@@ -7,6 +7,42 @@ SessionConfig.Matchmaking = {
     queueTickMs = 1500,
 }
 
+SessionConfig.Timecycle = {
+    enabled = true,
+    profiles = {
+        {
+            id = 'day_clear',
+            label = 'Day Raid',
+            hour = 13,
+            minute = 15,
+            weather = 'EXTRASUNNY',
+            freezeClock = true,
+            artificialLights = false,
+            weight = 55,
+        },
+        {
+            id = 'night_overcast',
+            label = 'Night Raid',
+            hour = 1,
+            minute = 35,
+            weather = 'OVERCAST',
+            freezeClock = true,
+            artificialLights = true,
+            weight = 35,
+        },
+        {
+            id = 'dawn_fog',
+            label = 'Dawn Raid',
+            hour = 5,
+            minute = 40,
+            weather = 'FOGGY',
+            freezeClock = true,
+            artificialLights = false,
+            weight = 10,
+        },
+    },
+}
+
 SessionConfig.Extractions = {
     pointsPerSession = 3,
     zoneHoldMs = 10000,
