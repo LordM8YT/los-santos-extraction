@@ -10,4 +10,4 @@ Character profile foundation for future custom operators and skins.
 
 ## Current State
 
-This is a safe skeleton. It applies a default freemode model and exposes a basic current-character export. Persistence and NUI character creation should be added in a later milestone, ideally with `oxmysql`.
+This is a safe foundation. It applies a visible freemode model, stores the current operator in `data/characters.json`, and exposes basic current-character exports/events. The lobby can create a male or female operator now; face, clothing, components, and full creator UI can be layered on later.

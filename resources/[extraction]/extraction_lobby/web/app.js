@@ -749,6 +749,13 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  if (action === "createOperator") {
+    const model = event.target?.closest("[data-model]")?.dataset?.model;
+    showToast("Creating visible operator...");
+    post("createOperator", { model });
+    return;
+  }
+
   if (action === "startRaid") {
     deployLocked = true;
     if (deployButton) {

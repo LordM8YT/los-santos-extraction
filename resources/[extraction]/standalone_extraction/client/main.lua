@@ -178,9 +178,7 @@ local function configureSpawnManager()
     end
 end
 
-local function setLobbyStaging(enabled)
-    lobbyStagingActive = enabled
-
+local function applyLobbyPedState(enabled)
     local ped = PlayerPedId()
     if not DoesEntityExist(ped) then
         return
@@ -188,7 +186,8 @@ local function setLobbyStaging(enabled)
 
     FreezeEntityPosition(ped, enabled)
     SetEntityInvincible(ped, enabled)
-    SetEntityVisible(ped, not enabled, false)
+    SetEntityVisible(ped, true, false)
+    ResetEntityAlpha(ped)
     SetEntityCollision(ped, not enabled, not enabled)
     SetPedCanSwitchWeapon(ped, not enabled)
     SetPlayerControl(PlayerId(), not enabled, 0)
@@ -197,6 +196,17 @@ local function setLobbyStaging(enabled)
         ClearPedTasksImmediately(ped)
         SetCurrentPedWeapon(ped, joaat('WEAPON_UNARMED'), true)
     end
+end
+
+local function requestCurrentCharacter()
+    if GetResourceState('extraction_character') == 'started' then
+        TriggerServerEvent('extraction_character:server:requestCurrent')
+    end
+end
+
+local function setLobbyStaging(enabled)
+    lobbyStagingActive = enabled
+    applyLobbyPedState(enabled)
 end
 
 local function enforceLobbySafety()
@@ -416,7 +426,10 @@ local function moveToLobbySpawn()
         ClearPedTasksImmediately(ped)
         ClearPedBloodDamage(ped)
         SetEntityHealth(ped, 200)
+        SetEntityVisible(ped, true, false)
+        ResetEntityAlpha(ped)
         setLobbyStaging(true)
+        requestCurrentCharacter()
         lobbySpawnReady = true
         DoScreenFadeIn(500)
     end
@@ -951,6 +964,7 @@ RegisterNetEvent('standalone_extraction:client:endRaid', function(payload)
     TriggerEvent('lsx_platform:client:resetTimecycle')
     resetRaidState()
     setLobbyStaging(true)
+    requestCurrentCharacter()
     setLobbyBlipsVisible(true)
 
     if payload.message and payload.message ~= '' then
@@ -982,6 +996,12 @@ end)
 RegisterCommand('extractstats', function()
     TriggerServerEvent('standalone_extraction:server:requestProfile')
 end, false)
+
+AddEventHandler('extraction_character:client:applied', function()
+    if lobbyStagingActive and not raidState.active then
+        applyLobbyPedState(true)
+    end
+end)
 
 RegisterCommand('raidleave', function()
     if not raidState.active then

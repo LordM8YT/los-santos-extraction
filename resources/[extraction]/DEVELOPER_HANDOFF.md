@@ -23,7 +23,7 @@ This folder contains a standalone FiveM extraction prototype. The current goal i
 - `extraction_world`
   Loot crate props, loot spot definitions, high-tier guard zones, and guard threat checks.
 - `extraction_character`
-  Foundation for future custom operators, character slots, models, components, props, and skins.
+  Foundation for custom operators. Currently supports a persisted visible freemode operator model/callsign flow; future work should extend this with face, clothing, components, props, and skins.
 - `extraction_inventory`
   Legacy compatibility wrapper. With `inventory:framework "lsx"` and `ox_inventory` running, raid inventory opens ox instead of the old NUI.
 - `extraction_hud`

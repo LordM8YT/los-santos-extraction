@@ -245,6 +245,23 @@ RegisterNUICallback('setSetting', function(data, cb)
     cb({ ok = ok, settings = clientSettings })
 end)
 
+RegisterNUICallback('createOperator', function(data, cb)
+    local model = data and data.model
+
+    TriggerServerEvent('extraction_character:server:createOrUpdate', {
+        model = model,
+        callsign = 'Contractor',
+        archetype = model == 'mp_f_freemode_01' and 'Recon' or 'Assault',
+    })
+
+    CreateThread(function()
+        Wait(350)
+        requestSnapshot()
+    end)
+
+    cb({ ok = true })
+end)
+
 AddEventHandler('onResourceStop', function(resourceName)
     if resourceName ~= GetCurrentResourceName() then
         return

@@ -28,8 +28,16 @@ local function applyCharacter(character)
 
     local model = currentCharacter.model or ExtractionCharacterConfig.defaultModel
     requestModel(model)
+    local ped = PlayerPedId()
+
+    if DoesEntityExist(ped) then
+        SetEntityVisible(ped, true, false)
+        ResetEntityAlpha(ped)
+        SetEntityCollision(ped, true, true)
+    end
 
     -- Component/prop customization will be applied here once the character creator UI exists.
+    TriggerEvent('extraction_character:client:applied', currentCharacter)
 end
 
 RegisterNetEvent('extraction_character:client:apply', function(character)
