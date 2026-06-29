@@ -30,6 +30,13 @@ local function applyCharacter(character)
     requestModel(model)
     local ped = PlayerPedId()
 
+    if currentCharacter.appearance and GetResourceState('illenium-appearance') == 'started' then
+        pcall(function()
+            exports['illenium-appearance']:setPlayerAppearance(currentCharacter.appearance)
+        end)
+        ped = PlayerPedId()
+    end
+
     if DoesEntityExist(ped) then
         SetEntityVisible(ped, true, false)
         ResetEntityAlpha(ped)

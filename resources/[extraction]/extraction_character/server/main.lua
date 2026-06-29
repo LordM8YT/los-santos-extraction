@@ -51,6 +51,7 @@ local function buildDefaultCharacter()
         affiliation = defaults.affiliation or 'Unaffiliated',
         archetype = defaults.archetype or 'Recon',
         model = ExtractionCharacterConfig.defaultModel or 'mp_m_freemode_01',
+        appearance = nil,
         components = {},
         props = {},
     }
@@ -108,6 +109,12 @@ local function createOrUpdateCharacter(source, data)
     current.affiliation = tostring(data and data.affiliation or current.affiliation or defaults.affiliation or 'Unaffiliated'):sub(1, 32)
     current.archetype = tostring(data and data.archetype or current.archetype or defaults.archetype or 'Recon'):sub(1, 24)
     current.model = getAllowedModel(data and data.model or current.model)
+    current.appearance = type(data and data.appearance) == 'table' and data.appearance or current.appearance
+
+    if current.appearance and current.appearance.model then
+        current.model = getAllowedModel(current.appearance.model)
+    end
+
     current.components = type(current.components) == 'table' and current.components or {}
     current.props = type(current.props) == 'table' and current.props or {}
 

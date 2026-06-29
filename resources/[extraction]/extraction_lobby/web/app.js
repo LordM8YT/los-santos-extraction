@@ -756,6 +756,12 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  if (action === "openAppearanceCreator") {
+    showToast("Opening appearance creator...");
+    post("openAppearanceCreator");
+    return;
+  }
+
   if (action === "startRaid") {
     deployLocked = true;
     if (deployButton) {

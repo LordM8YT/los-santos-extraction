@@ -262,6 +262,16 @@ RegisterNUICallback('createOperator', function(data, cb)
     cb({ ok = true })
 end)
 
+RegisterNUICallback('openAppearanceCreator', function(_, cb)
+    if GetResourceState('lsx_appearance') == 'started' then
+        TriggerEvent('lsx_appearance:client:openCreator')
+    elseif GetResourceState('extraction_hud') == 'started' then
+        TriggerEvent('extraction_hud:client:notify', 'Advanced appearance creator is not installed yet.', 'info')
+    end
+
+    cb({ ok = true })
+end)
+
 AddEventHandler('onResourceStop', function(resourceName)
     if resourceName ~= GetCurrentResourceName() then
         return
