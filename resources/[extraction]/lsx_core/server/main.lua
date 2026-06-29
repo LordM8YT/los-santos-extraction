@@ -18,6 +18,16 @@ exports('GetPlayer', function(source)
     return LSX.Server.Players.Get(source)
 end)
 
+exports('GetPlayerData', function(source)
+    local player = LSX.Server.Players.Get(source)
+    return player and player.serialize() or nil
+end)
+
+exports('GetInventoryPlayerData', function(source)
+    local player = LSX.Server.Players.Get(source)
+    return player and player.getInventoryData() or nil
+end)
+
 exports('GetPlayerFromUserId', function(userId)
     return LSX.Server.Players.GetFromUserId(userId)
 end)

@@ -27,6 +27,8 @@ local dotMethods = {
     'setStatus',
     'addStatus',
     'removeStatus',
+    'getDisplayName',
+    'getInventoryData',
     'save',
     'logout',
     'createCharacter',
@@ -322,6 +324,29 @@ end
 
 function PlayerMethods:removeStatus(statusName, value)
     return PlayerMethods.setStatus(self, statusName, PlayerMethods.getStatus(self, statusName) - (tonumber(value) or 0))
+end
+
+function PlayerMethods:getDisplayName()
+    local metadata = self.metadata or {}
+
+    return metadata.operatorName or metadata.callSign or self.username or ('Operator %s'):format(self.source)
+end
+
+function PlayerMethods:getInventoryData()
+    return {
+        source = self.source,
+        identifier = self.identifier,
+        userId = self.userId,
+        charId = self.charId,
+        stateId = self.stateId,
+        name = self.getDisplayName(),
+        groups = self.getGroups(),
+        metadata = {
+            operatorName = self.metadata.operatorName,
+            callSign = self.metadata.callSign,
+            phase = self.metadata.phase,
+        },
+    }
 end
 
 function PlayerMethods:save()

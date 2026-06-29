@@ -2,23 +2,16 @@ if not lib.checkDependency('lsx_core', '0.1.0', true) then return end
 
 local Inventory = require 'modules.inventory.server'
 
-local function getPlayerName(player)
-    local metadata = player.metadata or {}
-    local operatorName = metadata.operatorName or metadata.callSign
-
-    return operatorName or player.username or GetPlayerName(player.source) or ('Operator %s'):format(player.source)
-end
-
 local function setupPlayer(source)
-    local player = exports.lsx_core:GetPlayer(source)
+    local playerData = exports.lsx_core:GetInventoryPlayerData(source)
 
-    if not player then return end
+    if not playerData then return end
 
     server.setPlayerInventory({
-        source = player.source,
-        identifier = player.identifier,
-        name = getPlayerName(player),
-        groups = player.getGroups(),
+        source = playerData.source,
+        identifier = playerData.identifier,
+        name = playerData.name,
+        groups = playerData.groups,
     })
 end
 
@@ -49,12 +42,12 @@ end)
 
 ---@diagnostic disable-next-line: duplicate-set-field
 function server.setPlayerData(player)
-    local lsxPlayer = exports.lsx_core:GetPlayer(player.source)
+    local playerData = exports.lsx_core:GetInventoryPlayerData(player.source)
 
     return {
         source = player.source,
-        name = player.name,
-        groups = lsxPlayer and lsxPlayer.getGroups() or player.groups or {},
+        name = playerData and playerData.name or player.name,
+        groups = playerData and playerData.groups or player.groups or {},
     }
 end
 

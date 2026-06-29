@@ -19,6 +19,8 @@ Standalone framework core for Los Santos Extraction.
 - `GetIdentifierSnapshot(source)`
 - `GetPrimaryIdentifier(source)`
 - `GetPlayer(source)`
+- `GetPlayerData(source)`
+- `GetInventoryPlayerData(source)`
 - `GetPlayerFromUserId(userId)`
 - `GetPlayerFromCharId(charId)`
 - `GetPlayerFromFilter(filter)`
@@ -54,7 +56,7 @@ local player = LSX.GetPlayer(source)
 
 ## Ox Compatibility Strategy
 
-This resource does not pretend to be `ox_core` and does not emit `ox:` events by default. When we integrate `ox_inventory`, use an adapter or a tiny forked bridge that talks to `lsx_core`.
+This resource does not pretend to be `ox_core` and does not emit `ox:` events by default. When we integrate `ox_inventory`, use the `lsx_inventory_ox` adapter bridge and pull player identity through `GetInventoryPlayerData(source)` instead of reading LSX internals directly.
 
 If an adapter temporarily needs ox-style event aliases, set:
 

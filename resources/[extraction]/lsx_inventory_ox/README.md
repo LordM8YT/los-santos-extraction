@@ -19,3 +19,5 @@ The installer:
 - Patches `ox_inventory/modules/mysql/server.lua` so `inventory:framework "lsx"` uses `lsx_players`, `lsx_vehicles`, and `ox_inventory`.
 
 Run this again after updating or re-downloading `ox_inventory`.
+
+The server bridge should treat `lsx_core` as the framework source of truth and use `exports.lsx_core:GetInventoryPlayerData(source)` for inventory identity, names, and groups.

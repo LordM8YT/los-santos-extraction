@@ -92,5 +92,6 @@ Admin tooling is kept outside this folder in `resources/[admin]`:
 - Keep player-facing strings in config where possible.
 - Do not rename item keys without a migration for `data/players.json`.
 - `ox_inventory` should run through the local LSX bridge, not ESX/QBCore/ox_core. Import `resources/[extraction]/lsx_core/sql/inventory.sql`, set `mysql_connection_string`, then start `oxmysql`, `lsx_core`, and `ox_inventory`.
+- ox adapter code should use `exports.lsx_core:GetInventoryPlayerData(source)` for inventory identity and groups instead of reading LSX player internals directly.
 - Do not wire LSX features to ox jobs, groups, hospitals, character selection, vehicle ownership, or account systems.
 - New gameplay resources should depend on `lsx_core` for player data and only depend on ox resources through explicit adapter resources.
